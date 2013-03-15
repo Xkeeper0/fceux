@@ -86,7 +86,9 @@ bool debuggerSaveLoadDEBFiles = true;
 bool debuggerDisplayROMoffsets = false;
 
 char debug_str[35000] = {0};
-char debug_str_decoration[NL_MAX_MULTILINE_COMMENT_LEN + NL_MAX_NAME_LEN + 10] = {0};
+char* debug_decoration_name;
+char* debug_decoration_comment;
+char debug_str_decoration_comment[NL_MAX_MULTILINE_COMMENT_LEN + 2] = {0};
 
 // this is used to keep track of addresses that lines of Disassembly window correspont to
 std::vector<unsigned int> disassembly_addresses;
@@ -220,7 +222,8 @@ BOOL CALLBACK AddbpCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	char str[8] = {0};
 	int tmp;
 				
-	switch(uMsg) {
+	switch(uMsg)
+	{
 		case WM_INITDIALOG:
 			CenterWindow(hwndDlg);
 			SendDlgItemMessage(hwndDlg,IDC_ADDBP_ADDR_START,EM_SETLIMITTEXT,4,0);
@@ -389,21 +392,34 @@ void Disassemble(HWND hWnd, int id, int scrollid, unsigned int addr)
 		if (symbDebugEnabled)
 		{
 			// Insert Name and Comment lines if needed
-			debug_str_decoration[0] = 0;
-			decorateAddress(addr, debug_str_decoration);
-			if (debug_str_decoration[0])
+			debug_decoration_name = 0;
+			debug_decoration_comment = 0;
+			decorateAddress(addr, &debug_decoration_name, &debug_decoration_comment);
+			if (debug_decoration_name)
 			{
-				// divide the str_decoration into strings (Name, Comment1, Comment2, ...)
-				char* start_pos = debug_str_decoration;
-				char* end_pos = strstr(debug_str_decoration, "\r");
+				strcat(debug_str, debug_decoration_name);
+				strcat(debug_str, ": \r\n");
+				// we added one line to the disassembly window
+				disassembly_addresses.push_back(addr);
+				i++;
+			}
+			if (debug_decoration_comment)
+			{
+				// make a copy
+				strcpy(debug_str_decoration_comment, debug_decoration_comment);
+				strcat(debug_str_decoration_comment, "\r\n");
+				debug_decoration_comment = debug_str_decoration_comment;
+				// divide the debug_str_decoration_comment into strings (Comment1, Comment2, ...)
+				char* end_pos = strstr(debug_decoration_comment, "\r");
 				while (end_pos)
 				{
 					end_pos[0] = 0;		// set \0 instead of \r
-					strcat(debug_str, start_pos);
+					strcat(debug_str, "; ");
+					strcat(debug_str, debug_decoration_comment);
 					strcat(debug_str, "\r\n");
 					end_pos += 2;
-					start_pos = end_pos;
-					end_pos = strstr(end_pos, "\r");
+					debug_decoration_comment = end_pos;
+					end_pos = strstr(debug_decoration_comment, "\r");
 					// we added one line to the disassembly window
 					disassembly_addresses.push_back(addr);
 					i++;
@@ -601,16 +617,6 @@ int *GetEditHexData(HWND hwndDlg, int id){
 	return data;
 }
 
-/*
-int GetEditStack(HWND hwndDlg) {
-	char str[85];
-	int tmp;
-	GetDlgItemText(hwndDlg,IDC_DEBUGGER_STACK_CONTENTS,str,85);
-	sscanf(str,"%2x,%2x,%2x,%2x,\r\n",&tmp);
-	return tmp;
-}
-*/
-
 void UpdateRegs(HWND hwndDlg) {
 	if (DebuggerWasUpdated) {
 		X.A = GetEditHex(hwndDlg,IDC_DEBUGGER_VAL_A);
@@ -627,32 +633,36 @@ bool inDebugger = false;
 void FCEUD_DebugBreakpoint(int bp_num)
 {
 	// log the Breakpoint Hit into Trace Logger log if needed
-	if (logging && (logging_options & LOG_MESSAGES))
+	if (logging)
 	{
-		char str_temp[500];
-		if (bp_num >= 0)
+		log_old_emu_paused = false;		// force Trace Logger update
+		if (logging_options & LOG_MESSAGES)
 		{
-			// normal breakpoint
-			sprintf(str_temp, "Breakpoint %u Hit at $%04X: ", bp_num, X.PC);
-			strcat(str_temp, BreakToText(bp_num));
-			//watchpoint[num].condText
-			OutputLogLine(str_temp);
-		} else if (bp_num == BREAK_TYPE_BADOP)
-		{
-			sprintf(str_temp, "Bad Opcode Breakpoint Hit at $%04X", X.PC);
-			OutputLogLine(str_temp);
-		} else if (bp_num == BREAK_TYPE_CYCLES_EXCEED)
-		{
-			sprintf(str_temp, "Breakpoint Hit at $%04X: cycles count %lu exceeds %lu", X.PC, (long)(timestampbase + timestamp - total_cycles_base), (long)break_cycles_limit);
-			OutputLogLine(str_temp);
-		} else if (bp_num == BREAK_TYPE_INSTRUCTIONS_EXCEED)
-		{
-			sprintf(str_temp, "Breakpoint Hit at $%04X: instructions count %lu exceeds %lu", X.PC, (long)total_instructions, (long)break_instructions_limit);
-			OutputLogLine(str_temp);
+			char str_temp[500];
+			if (bp_num >= 0)
+			{
+				// normal breakpoint
+				sprintf(str_temp, "Breakpoint %u Hit at $%04X: ", bp_num, X.PC);
+				strcat(str_temp, BreakToText(bp_num));
+				//watchpoint[num].condText
+				OutputLogLine(str_temp);
+			} else if (bp_num == BREAK_TYPE_BADOP)
+			{
+				sprintf(str_temp, "Bad Opcode Breakpoint Hit at $%04X", X.PC);
+				OutputLogLine(str_temp);
+			} else if (bp_num == BREAK_TYPE_CYCLES_EXCEED)
+			{
+				sprintf(str_temp, "Breakpoint Hit at $%04X: cycles count %lu exceeds %lu", X.PC, (long)(timestampbase + timestamp - total_cycles_base), (long)break_cycles_limit);
+				OutputLogLine(str_temp);
+			} else if (bp_num == BREAK_TYPE_INSTRUCTIONS_EXCEED)
+			{
+				sprintf(str_temp, "Breakpoint Hit at $%04X: instructions count %lu exceeds %lu", X.PC, (long)total_instructions, (long)break_instructions_limit);
+				OutputLogLine(str_temp);
+			}
 		}
 	}
 
-	UpdateDebugger(true);
+	DoDebug(0);
 	UpdateOtherDebuggingDialogs(); // Keeps the debugging windows updating smoothly when stepping
 
 	if (bp_num >= 0)
@@ -1123,9 +1133,10 @@ BOOL CALLBACK PatcherCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 				case BN_CLICKED:
 					switch(LOWORD(wParam)) {
 						case IDC_ROMPATCHER_BTN_EDIT: //todo: maybe get rid of this button and cause iapoffset to update every time you change the text
-							if(IsDlgButtonChecked(hwndDlg,IDC_ROMPATCHER_DOTNES_OFFSET) == BST_CHECKED){
+							if(IsDlgButtonChecked(hwndDlg,IDC_ROMPATCHER_DOTNES_OFFSET) == BST_CHECKED)
 								iapoffset = GetEditHex(hwndDlg,IDC_ROMPATCHER_OFFSET);
-							} else iapoffset = GetNesFileAddress(GetEditHex(hwndDlg,IDC_ROMPATCHER_OFFSET));
+							else
+								iapoffset = GetNesFileAddress(GetEditHex(hwndDlg,IDC_ROMPATCHER_OFFSET));
 							if((iapoffset < 16) && (iapoffset != -1)){
 								MessageBox(hDebug, "Sorry, iNes Header editing isn't supported", "Error", MB_OK);
 								iapoffset = -1;
@@ -1147,7 +1158,8 @@ BOOL CALLBACK PatcherCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam
 							UpdatePatcher(hwndDlg);
 							break;
 						case IDC_ROMPATCHER_BTN_SAVE:
-							if(!iNesSave())MessageBox(NULL,"Error Saving","Error",MB_OK);
+							if (!iNesSave())
+								MessageBox(NULL, "Error Saving", "Error", MB_OK);
 							break;
 					}
 					break;
@@ -1343,6 +1355,11 @@ BOOL CALLBACK IDC_DEBUGGER_DISASSEMBLY_WndProc(HWND hwndDlg, UINT uMsg, WPARAM w
 			}
 			break;
 		}
+		case WM_MOUSEWHEEL:
+		{
+			SendMessage(GetDlgItem(hDebug,IDC_DEBUGGER_DISASSEMBLY_VSCR), uMsg, wParam, lParam);
+			return 0;
+		}
 	}
 	return CallWindowProc(IDC_DEBUGGER_DISASSEMBLY_oldWndProc, hwndDlg, uMsg, wParam, lParam);
 }
@@ -1477,13 +1494,13 @@ BOOL CALLBACK DebuggerCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			break;
 		case WM_MOVE:
 			if (!IsIconic(hwndDlg)) {
-			GetWindowRect(hwndDlg,&wrect);
-			DbgPosX = wrect.left;
-			DbgPosY = wrect.top;
+				GetWindowRect(hwndDlg,&wrect);
+				DbgPosX = wrect.left;
+				DbgPosY = wrect.top;
 
-			#ifdef WIN32
-			WindowBoundsCheckResize(DbgPosX,DbgPosY,DbgSizeX,wrect.right);
-			#endif
+				#ifdef WIN32
+				WindowBoundsCheckResize(DbgPosX,DbgPosY,DbgSizeX,wrect.right);
+				#endif
 			}
 			break;
 
@@ -1607,11 +1624,6 @@ BOOL CALLBACK DebuggerCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 			case WM_KEYDOWN:
 				MessageBox(hwndDlg,"Die!","I'm dead!",MB_YESNO|MB_ICONINFORMATION);
-				//i=0;
-				//if(uMsg == WM_KEYDOWN){
-				//	if(wParam == VK_PRIOR) i = -1;
-				//	if(wParam == VK_NEXT) i = 1;
-				//}
 				break;
 
 			case WM_MOUSEMOVE:
@@ -1709,7 +1721,9 @@ BOOL CALLBACK DebuggerCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			case WM_INITMENU:
 				break;
 			case WM_COMMAND:
-				switch(HIWORD(wParam)) {
+			{
+				switch(HIWORD(wParam))
+				{
 					case BN_CLICKED:
 						switch(LOWORD(wParam)) {
 							case IDC_DEBUGGER_RESTORESIZE: 
@@ -1739,18 +1753,16 @@ BOOL CALLBACK DebuggerCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 								}
 								break;
 							case IDC_DEBUGGER_STEP_IN:
-								if (FCEUI_EmulationPaused()) {
+								if (FCEUI_EmulationPaused())
 									UpdateRegs(hwndDlg);
-								}
 								FCEUI_Debugger().step = true;
 								FCEUI_SetEmulationPaused(0);
 								UpdateOtherDebuggingDialogs();
 								
 								break;
 							case IDC_DEBUGGER_RUN_LINE:
-								if (FCEUI_EmulationPaused()) {
+								if (FCEUI_EmulationPaused())
 									UpdateRegs(hwndDlg);
-								}
 								FCEUI_Debugger().runline = true;
 								{
 									uint64 ts=timestampbase;
@@ -1764,9 +1776,8 @@ BOOL CALLBACK DebuggerCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 								UpdateOtherDebuggingDialogs();
 								break;
 							case IDC_DEBUGGER_RUN_FRAME2:
-								if (FCEUI_EmulationPaused()) {
+								if (FCEUI_EmulationPaused())
 									UpdateRegs(hwndDlg);
-								}
 								FCEUI_Debugger().runline = true;
 								{
 									uint64 ts=timestampbase;
@@ -1923,6 +1934,7 @@ BOOL CALLBACK DebuggerCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 						break;
 				}
 				break;
+			}
 		}
 	}
 	
@@ -2015,15 +2027,26 @@ DebugSystem::DebugSystem()
 		ANSI_CHARSET,OUT_DEVICE_PRECIS,CLIP_MASK, /*charset, precision, clipping*/
 		DEFAULT_QUALITY, DEFAULT_PITCH, /*quality, and pitch*/
 		"Courier New"); /*font name*/
- 
+
+	hHexeditorFont = CreateFont(14, 8, /*Height,Width*/
+		0,0, /*escapement,orientation*/
+		FW_REGULAR,FALSE,FALSE,FALSE, /*weight, italic, underline, strikeout*/
+		ANSI_CHARSET,OUT_DEVICE_PRECIS,CLIP_MASK, /*charset, precision, clipping*/
+		DEFAULT_QUALITY, DEFAULT_PITCH, /*quality, and pitch*/
+		"Courier"); /*font name*/
+
 	HDC hdc = GetDC(GetDesktopWindow());
 	HGDIOBJ old = SelectObject(hdc,hFixedFont);
 	TEXTMETRIC tm;
 	GetTextMetrics(hdc,&tm);
 	fixedFontHeight = tm.tmHeight;
 	fixedFontWidth = tm.tmAveCharWidth;
-	printf("fixed font height: %d\n",fixedFontHeight);
-	printf("fixed font width: %d\n",fixedFontWidth);
+	//printf("fixed font height: %d\n",fixedFontHeight);
+	//printf("fixed font width: %d\n",fixedFontWidth);
+	SelectObject(hdc, hHexeditorFont);
+	GetTextMetrics(hdc,&tm);
+	HexeditorFontHeight = tm.tmHeight;
+	HexeditorFontWidth = tm.tmAveCharWidth;
 	SelectObject(hdc,old);
 	DeleteDC(hdc);
 }
@@ -2031,5 +2054,6 @@ DebugSystem::DebugSystem()
 DebugSystem::~DebugSystem()
 {
 	DeleteObject(hFixedFont);
+	DeleteObject(hHexeditorFont);
 }
 

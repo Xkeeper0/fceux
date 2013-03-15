@@ -37,9 +37,6 @@
     <Filter Include="input">
       <UniqueIdentifier>{5f356733-cee3-4440-aa40-cf138dcfbd8c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="mappers">
-      <UniqueIdentifier>{13cb7bca-c196-4896-b88a-581e99d86457}</UniqueIdentifier>
-    </Filter>
     <Filter Include="palettes">
       <UniqueIdentifier>{2a047eb3-7b56-41d4-b228-5df54bc1809d}</UniqueIdentifier>
     </Filter>
@@ -121,9 +118,6 @@
     <ClCompile Include="..\src\boards\222.cpp">
       <Filter>boards</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\boards\23.cpp">
-      <Filter>boards</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\boards\235.cpp">
       <Filter>boards</Filter>
     </ClCompile>
@@ -163,9 +157,6 @@
     <ClCompile Include="..\src\boards\90.cpp">
       <Filter>boards</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\boards\95.cpp">
-      <Filter>boards</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\boards\a9746.cpp">
       <Filter>boards</Filter>
     </ClCompile>
@@ -197,9 +188,6 @@
       <Filter>boards</Filter>
     </ClCompile>
     <ClCompile Include="..\src\boards\datalatch.cpp">
-      <Filter>boards</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\boards\deirom.cpp">
       <Filter>boards</Filter>
     </ClCompile>
     <ClCompile Include="..\src\boards\dream.cpp">
@@ -247,9 +235,6 @@
     <ClCompile Include="..\src\boards\mmc5.cpp">
       <Filter>boards</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\boards\n-c22m.cpp">
-      <Filter>boards</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\boards\n106.cpp">
       <Filter>boards</Filter>
     </ClCompile>
@@ -269,9 +254,6 @@
       <Filter>boards</Filter>
     </ClCompile>
     <ClCompile Include="..\src\boards\sl1632.cpp">
-      <Filter>boards</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\boards\smb2j.cpp">
       <Filter>boards</Filter>
     </ClCompile>
     <ClCompile Include="..\src\boards\subor.cpp">
@@ -647,212 +629,8 @@
     <ClCompile Include="..\src\lua\src\print.c">
       <Filter>drivers\win\lua</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\mappers\151.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\16.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\17.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\18.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\193.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\201.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\202.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\203.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\204.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\21.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\212.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\213.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\214.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\215.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\217.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\22.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\225.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\227.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\228.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\229.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\230.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\231.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\232.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\234.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\241.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\242.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\244.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\246.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\24and26.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\25.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\255.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\27.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\32.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\33.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\40.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\41.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\42.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\46.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\50.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\51.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\59.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\6.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\60.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\61.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\62.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\65.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\67.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\69.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\71.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\72.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\73.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\75.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\76.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\77.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\79.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\8.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\80.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\82.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\83.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\85.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\86.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\89.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\91.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\92.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\97.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\99.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\emu2413.c">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\mmc2and4.cpp">
-      <Filter>mappers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\mappers\simple.cpp">
-      <Filter>mappers</Filter>
+    <ClCompile Include="..\src\boards\emu2413.c">
+      <Filter>boards</Filter>
     </ClCompile>
     <ClCompile Include="..\src\movie.cpp" />
     <ClCompile Include="..\src\netplay.cpp" />
@@ -970,32 +748,218 @@
     <ClCompile Include="..\src\drivers\win\taseditor\laglog.cpp">
       <Filter>drivers\win\taseditor</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\mappers\156.cpp">
-      <Filter>mappers</Filter>
+    <ClCompile Include="..\src\boards\cityfighter.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\ks7057.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\12in1.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\18.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\34.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\82.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\91.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\96.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\99.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\151.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\156.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\168.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\170.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\193.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\ac-08.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\bb.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\dance2000.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\famicombox.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\ks7012.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\ks7013.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\ks7017.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\ks7030.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\ks7031.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\ks7037.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\le05.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\lh32.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\lh53.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\pec-586.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\sa-9602b.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\transformer.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\vrc7.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\yoko.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\225.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\vrc2and4.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\32.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\33.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\228.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\230.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\232.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\234.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\244.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\246.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\252.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\28.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\36.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\40.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\41.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\42.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\46.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\50.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\51.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\62.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\71.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\72.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\77.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\79.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\80.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\206.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\vrc1.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\vrc3.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\09-034a.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\65.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\67.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\69.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\vrc7p.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\ffe.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\mmc2and4.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\vrc6.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\boards\dsoundv1.cpp">
+      <Filter>boards</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\ioapi.cpp">
+      <Filter>utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\cart.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\cdlogger.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\cheat.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\conddebug.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\debug.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\drawing.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\driver.h">
-      <Filter>include files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\drivers\common\args.h">
       <Filter>drivers\common</Filter>
     </ClInclude>
@@ -1167,24 +1131,6 @@
     <ClInclude Include="..\src\drivers\win\window.h">
       <Filter>drivers\win</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\fceu.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\fceulua.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\fcoeffs.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\fds.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\file.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\filter.h">
-      <Filter>include files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\fir\c44100ntsc.h">
       <Filter>fir</Filter>
     </ClInclude>
@@ -1202,21 +1148,6 @@
     </ClInclude>
     <ClInclude Include="..\src\fir\c96000pal.h">
       <Filter>fir</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\git.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\ines-bad.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\ines-correct.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\ines.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\input.h">
-      <Filter>include files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\input\share.h">
       <Filter>input</Filter>
@@ -1293,33 +1224,6 @@
     <ClInclude Include="..\src\lua\src\lzio.h">
       <Filter>drivers\win\lua</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\mappers\emu2413.h">
-      <Filter>mappers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\mappers\emutypes.h">
-      <Filter>mappers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\mappers\mapinc.h">
-      <Filter>mappers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\mappers\vrc7tone.h">
-      <Filter>mappers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\movie.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\netplay.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\nsf.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\oldmovie.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\palette.h">
-      <Filter>include files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\palettes\palettes.h">
       <Filter>palettes</Filter>
     </ClInclude>
@@ -1334,24 +1238,6 @@
     </ClInclude>
     <ClInclude Include="..\src\palettes\rp2c05004.h">
       <Filter>palettes</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\ppu.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\sound.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\state.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\tracer.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\types.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\unif.h">
-      <Filter>include files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\utils\ConvertUTF.h">
       <Filter>utils</Filter>
@@ -1383,22 +1269,6 @@
     <ClInclude Include="..\src\utils\xstring.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\video.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\vsuni.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\wave.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\x6502.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\x6502struct.h">
-      <Filter>include files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\emufile.h" />
     <ClInclude Include="..\src\drivers\common\nes_ntsc.h">
       <Filter>drivers\common</Filter>
     </ClInclude>
@@ -1474,6 +1344,126 @@
     <ClInclude Include="..\src\drivers\win\taseditor\laglog.h">
       <Filter>drivers\win\taseditor</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\x6502struct.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\asm.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\cart.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\cheat.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\conddebug.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\config.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\debug.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\drawing.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\driver.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\emufile.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\emufile_types.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\fceu.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\fceulua.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\fcoeffs.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\fds.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\file.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\filter.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\git.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ines.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ines-bad.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ines-correct.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\input.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\movie.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\netplay.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\nsf.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\oldmovie.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\palette.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ppu.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\sound.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\state.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\types.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\types-des.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\unif.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\version.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\video.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vsuni.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\wave.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\x6502.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\x6502abbrev.h">
+      <Filter>include files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\utils\ioapi.h">
+      <Filter>utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\src\drivers\win\res.rc">
@@ -1488,7 +1478,6 @@
       <Filter>drivers\win\res</Filter>
     </None>
     <None Include="..\src\pputile.inc" />
-    <None Include="ClassDiagram1.cd" />
     <None Include="..\src\drivers\win\res\branch_spritesheet.bmp">
       <Filter>pix</Filter>
     </None>
@@ -1810,6 +1799,7 @@
     <None Include="..\src\drivers\win\res\taseditor-icon32.ico">
       <Filter>drivers\win\res</Filter>
     </None>
+    <None Include="..\src\ops.inc" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\src\auxlib.lua" />

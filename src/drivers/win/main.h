@@ -41,6 +41,7 @@ extern int genie;
 
 // Flag that indicates whether PAL Emulation is enabled or not.
 extern int pal_emulation;
+extern int pal_setting_specified;
 extern int status_icon;
 extern int frame_display;
 extern int rerecord_display;
@@ -59,6 +60,7 @@ extern int vmod;
 extern char* directory_names[14];
 
 char *GetRomName();	//Checks if rom is loaded, if so, outputs the Rom name with no directory path or file extension
+char *GetRomPath();	//Checks if rom is loaded, if so, outputs the Rom path only
 
 ///Contains the names of the default directories.
 static const char *default_directory_names[13] = {

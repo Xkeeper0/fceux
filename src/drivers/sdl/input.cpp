@@ -195,25 +195,19 @@ void
 TogglePause ()
 {
 	FCEUI_ToggleEmulationPause ();
-	int x;
-	g_config->getOption ("SDL.Fullscreen", &x);
 
-	if (x == 0)
-		return;
-
-	g_config->getOption ("SDL.NoFullscreenCursor", &x);
-
-	if (x == 1)
-		return;
+	int no_cursor;
+	g_config->getOption("SDL.NoFullscreenCursor", &no_cursor);
 
 	if (FCEUI_EmulationPaused () == 0)
 	{
-		SDL_ShowCursor (0);
 		SDL_WM_GrabInput (SDL_GRAB_ON);
+		if(no_cursor)
+			SDL_ShowCursor (0);
 	}
 	else {
-		SDL_ShowCursor (1);
 		SDL_WM_GrabInput (SDL_GRAB_OFF);
+		SDL_ShowCursor (1);
 	}
 
 	return;
@@ -418,6 +412,16 @@ void FCEUD_LoadStateFrom ()
 		return;			// no filename selected, quit the whole thing
 
 	FCEUI_LoadState (fname.c_str ());
+}
+
+/**
+* Hook for transformer board
+*/
+unsigned int *GetKeyboard(void)                                                     
+{
+  int size = 256;
+  Uint8* keystate = SDL_GetKeyState(&size);
+  return (unsigned int*)(keystate);
 }
 
 /**
@@ -683,15 +687,20 @@ static void KeyboardCommands ()
   //if(_keyonly(Hotkeys[HK_POWER])) {
   //    FCEUI_PowerNES();
   //}
-
-  // TODO add comment i'm on the phone
-  if (noGui == 1)
-    {
-      if (_keyonly (Hotkeys[HK_QUIT]))
+	if (_keyonly (Hotkeys[HK_QUIT]))
 	{
-	  CloseGame ();
-	}
+		if (noGui == 1)
+		{
+			CloseGame ();
+		}
+		else
+		{
+			FCEUI_Kill();
+			SDL_Quit();
+			exit(0);
+		}
     }
+	else
 
 #ifdef _S9XLUA_H
   if (_keyonly (Hotkeys[HK_LOAD_LUA]))

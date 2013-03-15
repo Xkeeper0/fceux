@@ -36,12 +36,18 @@ LoadCPalette(const std::string &file)
 	FILE *fp;
 
 	if(!(fp = FCEUD_UTF8fopen(file.c_str(), "rb"))) {
-		printf(" Error loading custom palette from file: %s\n", file.c_str());
+		char errorMsg[256];
+		strcpy(errorMsg, "Error loading custom palette from file: ");
+		strcat(errorMsg, file.c_str());
+		FCEUD_PrintError(errorMsg);
 		return 0;
 	}
 	size_t result = fread(tmpp, 1, 192, fp);
 	if(result != 192) {
-		printf(" Error reading custom palette from file: %s\n", file.c_str());
+		char errorMsg[256];
+		strcpy(errorMsg, "Error loading custom palette from file: ");
+		strcat(errorMsg, file.c_str());
+		FCEUD_PrintError(errorMsg);
 		return 0;
 	}
 	FCEUI_SetPaletteArray(tmpp);
@@ -151,9 +157,13 @@ InitConfig()
 	config->addOption("slend", "SDL.ScanLineEnd", 239);
 
 	// video controls
-	config->addOption('x', "xres", "SDL.XResolution", 512);
-	config->addOption('y', "yres", "SDL.YResolution", 448);
 	config->addOption('f', "fullscreen", "SDL.Fullscreen", 0);
+
+	// set x/y res to 0 for automatic fullscreen resolution detection (no change)
+	config->addOption('x', "xres", "SDL.XResolution", 0);
+	config->addOption('y', "yres", "SDL.YResolution", 0);
+	config->addOption("SDL.LastXRes", 0);
+	config->addOption("SDL.LastYRes", 0);
 	config->addOption('b', "bpp", "SDL.BitsPerPixel", 32);
 	config->addOption("doublebuf", "SDL.DoubleBuffering", 0);
 	config->addOption("autoscale", "SDL.AutoScale", 1);
@@ -204,6 +214,8 @@ InitConfig()
     
 	// overwrite the config file?
 	config->addOption("no-config", "SDL.NoConfig", 0);
+
+	config->addOption("autoresume", "SDL.AutoResume", 0);
     
 	// video playback
 	config->addOption("playmov", "SDL.Movie", "");

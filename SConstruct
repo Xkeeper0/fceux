@@ -3,6 +3,8 @@
 #
 # You can adjust the BoolVariables below to include/exclude features at compile-time
 #
+# You may need to wipe the scons cache ("scons -c") and recompile for some options to take effect.
+#
 # Use "scons" to compile and "scons install" to install.
 #
 
@@ -17,9 +19,11 @@ opts.AddVariables(
   BoolVariable('LSB_FIRST', 'Least signficant byte first (non-PPC)', 1),
   BoolVariable('DEBUG',     'Build with debugging symbols', 1),
   BoolVariable('LUA',       'Enable Lua support', 1),
+  BoolVariable('SYSTEM_LUA','Use system lua instead of static lua provided with fceux', 1),
+  BoolVariable('SYSTEM_MINIZIP', 'Use system minizip instead of static minizip provided with fceux', 0),
   BoolVariable('NEWPPU',    'Enable new PPU core', 1),
   BoolVariable('CREATE_AVI', 'Enable avi creation support (SDL only)', 1),
-  BoolVariable('LOGO', 'Enable a logoscreen when creating avis (SDL only)', '1'),
+  BoolVariable('LOGO', 'Enable a logoscreen when creating avis (SDL only)', 1),
   BoolVariable('GTK', 'Enable GTK2 GUI (SDL only)', 1),
   BoolVariable('GTK3', 'Enable GTK3 GUI (SDL only)', 0),
   BoolVariable('CLANG', 'Compile with llvm-clang instead of gcc', 0)
@@ -30,8 +34,8 @@ prefix = GetOption('prefix')
 env = Environment(options = opts)
 
 #### Uncomment this for a public release ###
-# env.Append(CPPDEFINES=["PUBLIC_RELEASE"])
-# env['DEBUG'] = 0
+env.Append(CPPDEFINES=["PUBLIC_RELEASE"])
+env['DEBUG'] = 0
 ############################################
 
 # LSB_FIRST must be off for PPC to compile
@@ -80,7 +84,12 @@ else:
   conf = Configure(env)
   if conf.CheckFunc('asprintf'):
     conf.env.Append(CCFLAGS = "-DHAVE_ASPRINTF")
-  assert conf.CheckLibWithHeader('z', 'zlib.h', 'c', 'inflate;', 1), "please install: zlib"
+  if env['SYSTEM_MINIZIP']:
+    assert conf.CheckLibWithHeader('minizip', 'minizip/unzip.h', 'C', 'unzOpen;', 1), "please install: libminizip"
+    assert conf.CheckLibWithHeader('z', 'zlib.h', 'c', 'inflate;', 1), "please install: zlib"
+    env.Append(CPPDEFINES=["_SYSTEM_MINIZIP"])
+  else:
+    assert conf.CheckLibWithHeader('z', 'zlib.h', 'c', 'inflate;', 1), "please install: zlib"
   if not conf.CheckLib('SDL'):
     print 'Did not find libSDL or SDL.lib, exiting!'
     Exit(1)
@@ -89,12 +98,18 @@ else:
       print 'Could not find libgtk-2.0, exiting!'
       Exit(1)
     # Add compiler and linker flags from pkg-config
-    env.ParseConfig('pkg-config --cflags --libs gtk+-2.0')
+    config_string = 'pkg-config --cflags --libs gtk+-2.0'
+    if env['PLATFORM'] == 'darwin':
+      config_string = 'PKG_CONFIG_PATH=/opt/X11/lib/pkgconfig/ ' + config_string
+    env.ParseConfig(config_string)
     env.Append(CPPDEFINES=["_GTK2"])
     env.Append(CCFLAGS = ["-D_GTK"])
   if env['GTK3']:
     # Add compiler and linker flags from pkg-config
-    env.ParseConfig('pkg-config --cflags --libs gtk+-3.0')
+    config_string = 'pkg-config --cflags --libs gtk+-3.0'
+    if env['PLATFORM'] == 'darwin':
+      config_string = 'PKG_CONFIG_PATH=/opt/X11/lib/pkgconfig/ ' + config_string
+    env.ParseConfig(config_string)
     env.Append(CPPDEFINES=["_GTK3"])
     env.Append(CCFLAGS = ["-D_GTK"])
 
@@ -109,10 +124,16 @@ else:
       # If we're POSIX, we use LUA_USE_LINUX since that combines usual lua posix defines with dlfcn calls for dynamic library loading.
       # Should work on any *nix
       env.Append(CCFLAGS = ["-DLUA_USE_LINUX"])
-      if conf.CheckLib('lua5.1'):
-        env.Append(LINKFLAGS = ["-ldl", "-llua5.1"])
-      elif conf.CheckLib('lua'):
-        env.Append(LINKFLAGS = ["-ldl", "-llua"])
+    lua_available = False
+    if conf.CheckLib('lua5.1'):
+      env.Append(LINKFLAGS = ["-ldl", "-llua5.1"])
+      lua_available = True
+    elif conf.CheckLib('lua'):
+      env.Append(LINKFLAGS = ["-ldl", "-llua"])
+      lua_available = True
+    if lua_available == False:
+      print 'Could not find liblua, exiting!'
+      Exit(1)
   # "--as-needed" no longer available on OSX (probably BSD as well? TODO: test)
   if env['PLATFORM'] != 'darwin':
     env.Append(LINKFLAGS=['-Wl,--as-needed'])
@@ -165,6 +186,9 @@ if env['PLATFORM'] == 'win32':
 fceux_src = 'src/fceux' + exe_suffix
 fceux_dst = 'bin/fceux' + exe_suffix
 
+fceux_net_server_src = 'fceux-net-server' + exe_suffix
+fceux_net_server_dst = 'bin/fceux-net-server' + exe_suffix
+
 auxlib_src = 'src/auxlib.lua'
 auxlib_dst = 'bin/auxlib.lua'
 auxlib_inst_dst = prefix + '/share/fceux/auxlib.lua'
@@ -174,19 +198,24 @@ fceux_h_dst = 'bin/fceux.chm'
 
 env.Command(fceux_h_dst, fceux_h_src, [Copy(fceux_h_dst, fceux_h_src)])
 env.Command(fceux_dst, fceux_src, [Copy(fceux_dst, fceux_src)])
+env.Command(fceux_net_server_dst, fceux_net_server_src, [Copy(fceux_net_server_dst, fceux_net_server_src)])
 env.Command(auxlib_dst, auxlib_src, [Copy(auxlib_dst, auxlib_src)])
 
 man_src = 'documentation/fceux.6'
+man_net_src = 'documentation/fceux-net-server.6'
 man_dst = prefix + '/share/man/man6/fceux.6'
+man_net_dst = prefix + '/share/man/man6/fceux-net-server.6'
 
 share_src = 'output/'
 share_dst = prefix + '/share/fceux/'
 
 env.Install(prefix + "/bin/", fceux)
+env.Install(prefix + "/bin/", "fceux-net-server")
 # TODO:  Where to put auxlib on "scons install?"
 env.Alias('install', env.Command(auxlib_inst_dst, auxlib_src, [Copy(auxlib_inst_dst, auxlib_src)]))
 env.Alias('install', env.Command(share_dst, share_src, [Copy(share_dst, share_src)]))
 env.Alias('install', env.Command(man_dst, man_src, [Copy(man_dst, man_src)]))
+env.Alias('install', env.Command(man_net_dst, man_net_src, [Copy(man_net_dst, man_net_src)]))
 env.Alias('install', (prefix + "/bin/"))
 
 

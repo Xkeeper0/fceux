@@ -40,6 +40,7 @@ extern char LoadedRomFName[2048];
 char NLfilename[2048];
 char symbDebugEnabled = 0;
 int debuggerWasActive = 0;
+char temp_chr[40] = {0};
 
 extern BOOL CALLBACK nameBookmarkCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 extern char bookmarkDescription[];
@@ -66,7 +67,8 @@ int isHex(char c)
 **/
 void replaceString(char* src, const char* r, const char* w)
 {
-	char buff[1001] = {0};
+	static char buff[1001];
+	buff[0] = 0;
 	char* pos = src;
 	char* beg = src;
 
@@ -600,16 +602,12 @@ void loadNameFiles()
 }
 
 /**
-* Adds label and comment to an offset in the disassembly output string
+* Returns pointers to name and comment to an offset in the disassembly output string
 * 
-* @param addr Address of the currently processed line
-* @param str Disassembly output string
 **/
-void decorateAddress(unsigned int addr, char* str)
+void decorateAddress(unsigned int addr, char** str_name, char** str_comment)
 {
 	Name* n;
-		
-	char temp_chr[40];
 	sprintf(temp_chr, "$%04X", addr);
 
 	if (addr < 0x8000)
@@ -622,24 +620,15 @@ void decorateAddress(unsigned int addr, char* str)
 		n = addr >= 0xC000 ? searchNode(lastBankNames, temp_chr) : searchNode(loadedBankNames, temp_chr);
 	}
 		
-	// If a node was found there's a name or comment to add do so
-	if (n && (n->name || n->comment))
+	if (n)
 	{
-		// Add name
+		// Return pointer to name
 		if (n->name && *n->name)
-		{
-			strcat(str, "Name: ");
-			strcat(str, n->name);
-			strcat(str,"\r\n");
-		}
+			*str_name = n->name;
 			
-		// Add comment
+		// Return pointer to comment
 		if (n->comment && *n->comment)
-		{
-			strcat(str, "Comment: ");
-			strcat(str, n->comment);
-			strcat(str, "\r\n");
-		}
+			*str_comment = n->comment;
 	}
 }
 
@@ -710,7 +699,7 @@ void AddDebuggerBookmark(HWND hwnd)
 void DeleteDebuggerBookmark(HWND hwnd)
 {
 	// Get the selected bookmark
-	int selectedItem = SendDlgItemMessage(hwnd, LIST_DEBUGGER_BOOKMARKS, LB_GETCURSEL, 0, 0);
+	unsigned int selectedItem = SendDlgItemMessage(hwnd, LIST_DEBUGGER_BOOKMARKS, LB_GETCURSEL, 0, 0);
 	
 	if (selectedItem == LB_ERR)
 	{

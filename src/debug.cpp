@@ -1,4 +1,4 @@
-/// \file 
+/// \file
 /// \brief Implements core debugging facilities
 
 #include <stdlib.h>
@@ -94,11 +94,11 @@ int getValue(int type)
 int checkCondition(const char* condition, int num)
 {
 	const char* b = condition;
-	
+
 	// Check if the condition isn't just all spaces.
-	
+
 	int onlySpaces = 1;
-	
+
 	while (*b)
 	{
 		if (*b != ' ')
@@ -106,32 +106,30 @@ int checkCondition(const char* condition, int num)
 			onlySpaces = 0;
 			break;
 		}
-		
+
 		++b;
 	}
-	
-	// Remove the old breakpoint condition before
-	// adding a new condition.
-	
-	if (watchpoint[num].cond)
-	{
-		freeTree(watchpoint[num].cond);
-		free(watchpoint[num].condText);
-		
-		watchpoint[num].cond = 0;
-		watchpoint[num].condText = 0;
-	}
-			
+
+
 	// If there's an actual condition create the BP condition object now
-	
+
 	if (*condition && !onlySpaces)
 	{
 		Condition* c = generateCondition(condition);
-		
+
+		// Remove the old breakpoint condition before adding a new condition.
+		if (watchpoint[num].cond)
+		{
+			freeTree(watchpoint[num].cond);
+			free(watchpoint[num].condText);
+			watchpoint[num].cond = 0;
+			watchpoint[num].condText = 0;
+		}
+
 		// If the creation of the BP condition object was succesful
 		// the condition is apparently valid. It can be added to the
 		// breakpoint now.
-		
+
 		if (c)
 		{
 			watchpoint[num].cond = c;
@@ -144,11 +142,19 @@ int checkCondition(const char* condition, int num)
 		{
 			watchpoint[num].cond = 0;
 		}
-		
+
 		return watchpoint[num].cond == 0 ? 2 : 0;
 	}
 	else
 	{
+		// Remove the old breakpoint condition
+		if (watchpoint[num].cond)
+		{
+			freeTree(watchpoint[num].cond);
+			free(watchpoint[num].condText);
+			watchpoint[num].cond = 0;
+			watchpoint[num].condText = 0;
+		}
 		return 0;
 	}
 }
@@ -158,7 +164,7 @@ int checkCondition(const char* condition, int num)
 *
 * @param hwndDlg Handle of the debugger window
 * @param num Number of the breakpoint
-* @param 
+* @param
 **/
 unsigned int NewBreak(const char* name, int start, int end, unsigned int type, const char* condition, unsigned int num, bool enable)
 {
@@ -193,23 +199,26 @@ unsigned int NewBreak(const char* name, int start, int end, unsigned int type, c
 
 	watchpoint[num].desc = (char*)malloc(strlen(name) + 1);
 	strcpy(watchpoint[num].desc, name);
-	
+
 	return checkCondition(condition, num);
 }
 
 int GetPRGAddress(int A){
 	int result;
-	if((A < 0x8000) || (A > 0xFFFF))return -1;
+	if(A > 0xFFFF)
+		return -1;
 	result = &Page[A>>11][A]-PRGptr[0];
-	if((result > (int)PRGsize[0]) || (result < 0))return -1;
-	else return result;
+	if((result > (int)PRGsize[0]) || (result < 0))
+		return -1;
+	else
+		return result;
 }
 
 /**
 * Returns the bank for a given offset.
 * Technically speaking this function does not calculate the actual bank
 * where the offset resides but the 0x4000 bytes large chunk of the ROM of the offset.
-* 
+*
 * @param offs The offset
 * @return The bank of that offset or -1 if the offset is not part of the ROM.
 **/
@@ -218,13 +227,11 @@ int getBank(int offs)
 	//NSF data is easy to overflow the return on.
 	//Anything over FFFFF will kill it.
 
-
 	//GetNesFileAddress doesn't work well with Unif files
 	int addr = GetNesFileAddress(offs)-16;
 
-	if (GameInfo && GameInfo->type==GIT_NSF) {
-	return addr != -1 ? addr / 0x1000 : -1;
-	}
+	if (GameInfo && GameInfo->type==GIT_NSF)
+		return addr != -1 ? addr / 0x1000 : -1;
 	return addr != -1 ? addr / 0x4000 : -1;
 }
 
@@ -267,8 +274,7 @@ uint8 GetMem(uint16 A) {
 			case 6: return RefreshAddr&0xFF;
 			case 7: return VRAMBuffer;
 		}
-	}
-	else if ((A >= 0x4000) && (A < 0x6000)) return 0xFF; //fix me
+	} else if ((A >= 0x4000) && (A < 0x5000)) return 0xFF;	// AnS: changed the range, so MMC5 ExRAM can be watched in the Hexeditor
 	if (GameInfo) return ARead[A](A);					 //adelikat: 11/17/09: Prevent crash if this is called with no game loaded.
 	else return 0;
 }
@@ -364,6 +370,7 @@ int condition(watchpointinfo* wp)
 
 volatile int codecount, datacount, undefinedcount;
 unsigned char *cdloggerdata;
+unsigned int cdloggerdataSize = 0;
 static int indirectnext;
 
 int debug_loggingCD;
@@ -372,9 +379,7 @@ int debug_loggingCD;
 void LogCDVectors(int which){
 	int j;
 	j = GetPRGAddress(which);
-	if(j == -1){
-		return;
-	}
+	if(j == -1) return;
 
 	if(!(cdloggerdata[j] & 2)){
 		cdloggerdata[j] |= 0x0E; // we're in the last bank and recording it as data so 0x1110 or 0xE should be what we need
@@ -382,7 +387,7 @@ void LogCDVectors(int which){
 		if(!(cdloggerdata[j] & 1))undefinedcount--;
 	}
 	j++;
-	
+
 	if(!(cdloggerdata[j] & 2)){
 		cdloggerdata[j] |= 0x0E;
 		datacount++;
@@ -390,52 +395,29 @@ void LogCDVectors(int which){
 	}
 }
 
-void LogCDData(){
+void LogCDData(uint8 *opcode, uint16 A, int size) {
 	int i, j;
-	uint16 A = 0; 
-	uint8 opcode[3] = {0}, memop = 0;
+	uint8 memop = 0;
 
-	opcode[0] = GetMem(_PC);
-	switch (opsize[opcode[0]]) {
-		case 2:
-			opcode[1] = GetMem(_PC + 1);
-			break;
-		case 3:
-			opcode[1] = GetMem(_PC + 1);
-			opcode[2] = GetMem(_PC + 2);
-			break;
-	}
-	
-	if((j = GetPRGAddress(_PC)) != -1) 
-		for (i = 0; i < opsize[opcode[0]]; i++) {
+	if((j = GetPRGAddress(_PC)) != -1)
+		for (i = 0; i < size; i++) {
 			if(cdloggerdata[j+i] & 1)continue; //this has been logged so skip
 			cdloggerdata[j+i] |= 1;
 			cdloggerdata[j+i] |=((_PC+i)>>11)&0x0c;
 			if(indirectnext)cdloggerdata[j+i] |= 0x10;
-			codecount++; 
+			codecount++;
 			if(!(cdloggerdata[j+i] & 2))undefinedcount--;
 		}
 
 	//log instruction jumped to in an indirect jump
-	if(opcode[0] == 0x6c) indirectnext = 1; else indirectnext = 0;
+	if(opcode[0] == 0x6c)
+		indirectnext = 1;
+	else
+		indirectnext = 0;
 
 	switch (optype[opcode[0]]) {
-		case 0: break;
 		case 1:
-			A = (opcode[1]+_X) & 0xFF;
-			A = GetMem(A) | (GetMem(A+1)<<8);
-			memop = 0x20;
-			break;
-		case 2: A = opcode[1]; break;
-		case 3: A = opcode[1] | opcode[2]<<8; break;
-		case 4:
-			A = (GetMem(opcode[1]) | (GetMem(opcode[1]+1)<<8))+_Y;
-			memop = 0x20;
-			break;
-		case 5: A = opcode[1]+_X; break;
-		case 6: A = (opcode[1] | (opcode[2]<<8))+_Y; break;
-		case 7: A = (opcode[1] | (opcode[2]<<8))+_X; break;
-		case 8: A = opcode[1]+_Y; break;
+		case 4: memop = 0x20; break;
 	}
 
 	if((j = GetPRGAddress(A)) != -1) {
@@ -443,7 +425,7 @@ void LogCDData(){
 			cdloggerdata[j] |= 2;
 			cdloggerdata[j] |=(A>>11)&0x0c;
 			cdloggerdata[j] |= memop;
-			datacount++; 
+			datacount++;
 			if(!(cdloggerdata[j] & 1))undefinedcount--;
 		}
 	}
@@ -491,7 +473,7 @@ void IncrementInstructionsCounters()
 void BreakHit(int bp_num, bool force = false)
 {
 	if(!force) {
-		
+
 		//check to see whether we fall in any forbid zone
 		for (int i = 0; i < numWPs; i++) {
 			watchpointinfo& wp = watchpoint[i];
@@ -511,11 +493,9 @@ void BreakHit(int bp_num, bool force = false)
 		}
 	}
 
-	FCEUI_SetEmulationPaused(1); //mbg merge 7/19/06 changed to use EmulationPaused()
-	
-	//MBG TODO - was this commented out before the gnu refactoring?
-	//if((!logtofile) && (logging))PauseLoggingSequence();
-#ifdef WIN32	
+	FCEUI_SetEmulationPaused(EMULATIONPAUSED_PAUSED); //mbg merge 7/19/06 changed to use EmulationPaused()
+
+#ifdef WIN32
 	FCEUD_DebugBreakpoint(bp_num);
 #endif
 }
@@ -524,11 +504,9 @@ uint8 StackAddrBackup = X.S;
 uint16 StackNextIgnorePC = 0xFFFF;
 
 ///fires a breakpoint
-void breakpoint()
-{
-	int i,j;
-	uint16 A=0;
-	uint8 brk_type,opcode[3] = {0};
+static void breakpoint(uint8 *opcode, uint16 A, int size) {
+	int i, j;
+	uint8 brk_type;
 	uint8 stackop=0;
 	uint8 stackopstartaddr,stackopendaddr;
 
@@ -537,18 +515,16 @@ void breakpoint()
 	if (break_on_instructions && (total_instructions > break_instructions_limit))
 		BreakHit(BREAK_TYPE_INSTRUCTIONS_EXCEED, true);
 
-	//inspect the current opcode
-	opcode[0] = GetMem(_PC);
-
 	//if the current instruction is bad, and we are breaking on bad opcodes, then hit the breakpoint
-	if(dbgstate.badopbreak && (opsize[opcode[0]] == 0))
+	if(dbgstate.badopbreak && (size == 0))
 		BreakHit(BREAK_TYPE_BADOP, true);
 
 	//if we're stepping out, track the nest level
 	if (dbgstate.stepout) {
 		if (opcode[0] == 0x20) dbgstate.jsrcount++;
 		else if (opcode[0] == 0x60) {
-			if (dbgstate.jsrcount) dbgstate.jsrcount--;
+			if (dbgstate.jsrcount)
+				dbgstate.jsrcount--;
 			else {
 				dbgstate.stepout = false;
 				dbgstate.step = true;
@@ -563,8 +539,8 @@ void breakpoint()
 		BreakHit(BREAK_TYPE_STEP, true);
 		return;
 	}
+
 	//if we're running for a scanline, we want to check if we've hit the cycle limit
-	
 	if (dbgstate.runline) {
 		uint64 ts = timestampbase;
 		ts+=timestamp;
@@ -576,6 +552,7 @@ void breakpoint()
 			return;
 		}
 	}
+
 	//check the step over address and break if we've hit it
 	if ((watchpoint[64].address == _PC) && (watchpoint[64].flags)) {
 		watchpoint[64].address = 0;
@@ -584,22 +561,7 @@ void breakpoint()
 		return;
 	}
 
-	for (i = 1; i < opsize[opcode[0]]; i++) opcode[i] = GetMem(_PC+i);
 	brk_type = opbrktype[opcode[0]] | WP_X;
-	switch (optype[opcode[0]]) {
-		case 0: /*A = _PC;*/ break;
-		case 1:
-			A = (opcode[1]+_X) & 0xFF;
-			A = GetMem(A) | (GetMem(A+1))<<8;
-			break;
-		case 2: A = opcode[1]; break;
-		case 3: A = opcode[1] | opcode[2]<<8; break;
-		case 4: A = (GetMem(opcode[1]) | (GetMem(opcode[1]+1))<<8)+_Y; break;
-		case 5: A = opcode[1]+_X; break;
-		case 6: A = (opcode[1] | opcode[2]<<8)+_Y; break;
-		case 7: A = (opcode[1] | opcode[2]<<8)+_X; break;
-		case 8: A = opcode[1]+_Y; break;
-	}
 
 	switch (opcode[0]) {
 		//Push Ops
@@ -700,7 +662,7 @@ void breakpoint()
 					{
 						// Used to make it ignore the unannounced stack code one time
 						StackNextIgnorePC = 0xFFFF;
-					} else 
+					} else
 					{
 						if ((X.S < StackAddrBackup) && (stackop==0))
 						{
@@ -758,6 +720,9 @@ int debug_tracing;
 
 void DebugCycle()
 {
+	uint8 opcode[3] = {0};
+	uint16 A = 0;
+	int size;
 
 #ifdef WIN32
 	// since this function is called once for every instruction, we can use it for keeping statistics
@@ -773,25 +738,51 @@ void DebugCycle()
 	}
 	else
 		vblankScanLines = 0;
-	
-	if (GameInfo->type==GIT_NSF)  
+
+	if (GameInfo->type==GIT_NSF)
 	{
 		if ((_PC >= 0x3801) && (_PC <= 0x3824)) return;
 	}
 
-	if (numWPs || dbgstate.step || dbgstate.runline || dbgstate.stepout || watchpoint[64].flags || dbgstate.badopbreak || break_on_cycles || break_on_instructions)
-		breakpoint();
+	opcode[0] = GetMem(_PC);
+	size = opsize[opcode[0]];
+	switch (size)
+	{
+		case 2:
+			opcode[1] = GetMem(_PC + 1);
+			break;
+		case 3:
+			opcode[1] = GetMem(_PC + 1);
+			opcode[2] = GetMem(_PC + 2);
+			break;
+	}
 
-	if(debug_loggingCD) LogCDData();
-	
-	//mbg 6/30/06 - this was commented out when i got here. i dont understand it anyway
- 	//if(logging || (hMemView && (EditingMode == 2))) LogInstruction();
- 
-//This needs to be windows only or else the linux build system will fail since logging is declared in a 
-//windows source file
+	switch (optype[opcode[0]])
+	{
+		case 0: break;
+		case 1:
+			A = (opcode[1] + _X) & 0xFF;
+			A = GetMem(A) | (GetMem(A + 1) << 8);
+			break;
+		case 2: A = opcode[1]; break;
+		case 3: A = opcode[1] | (opcode[2] << 8); break;
+		case 4: A = (GetMem(opcode[1]) | (GetMem(opcode[1]+1) << 8)) + _Y; break;
+		case 5: A = opcode[1] + _X; break;
+		case 6: A = (opcode[1] | (opcode[2] << 8)) + _Y; break;
+		case 7: A = (opcode[1] | (opcode[2] << 8)) + _X; break;
+		case 8: A = opcode[1] + _Y; break;
+	}
+
+	if (numWPs || dbgstate.step || dbgstate.runline || dbgstate.stepout || watchpoint[64].flags || dbgstate.badopbreak || break_on_cycles || break_on_instructions)
+		breakpoint(opcode, A, size);
+
+	if(debug_loggingCD)
+		LogCDData(opcode, A, size);
+
 #ifdef WIN32
-	extern volatile int logging; //UGETAB: This is required to be an extern, because the info isn't set here
-	if(logging) FCEUD_TraceInstruction();
+	//This needs to be windows only or else the linux build system will fail since logging is declared in a
+	//windows source file
+	FCEUD_TraceInstruction(opcode, size);
 #endif
 
 }

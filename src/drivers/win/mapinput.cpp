@@ -344,15 +344,14 @@ BOOL CALLBACK ChangeInputDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPAR
 		case WM_COMMAND:
 			switch(LOWORD(wParam))	 // CaH4e3: BN_CLICKED redundant define removed since it always 0, Esc mapping used to be handled as well (I need it too :))
 			{
-				case BTN_CANCEL:
-					key = 0;
+				case BTN_OK:
 					// Send quit message.
-					PostMessage(hwndDlg, WM_USER + 1, 0, 0);
+					PostMessage(hwndDlg, WM_USER + 99, 0, 0);
 					break;
 				case BTN_CLEAR:
 					key = -1;
 					// Send quit message.
-					PostMessage(hwndDlg, WM_USER + 1, 0, 0);
+					PostMessage(hwndDlg, WM_USER + 99, 0, 0);
 					break;
 				default:
 					break;
@@ -375,26 +374,27 @@ BOOL CALLBACK ChangeInputDialogProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPAR
 				}
 				else if(NothingPressed() && key)
 				{
-					PostMessage(hwndDlg, WM_USER+1, 0, 0);		// Send quit message.
+					PostMessage(hwndDlg, WM_USER + 99, 0, 0);		// Send quit message.
 				}
 			}
 			break;
 
-		case WM_USER+1:
-			{
-				// Done with keyboard.
-				KeyboardSetBackgroundAccess(false);
+		case WM_CLOSE:
+			// exit without changing the key mapping
+			key = 0;
+		case WM_USER + 99:
+			// Done with keyboard.
+			KeyboardSetBackgroundAccess(false);
 
-				// Kill the thread.
-				SetEvent(threadargs.hThreadExit);
-				WaitForSingleObject(hThread, INFINITE);
-				CloseHandle(hThread);
-				CloseHandle(threadargs.hThreadExit);
+			// Kill the thread.
+			SetEvent(threadargs.hThreadExit);
+			WaitForSingleObject(hThread, INFINITE);
+			CloseHandle(hThread);
+			CloseHandle(threadargs.hThreadExit);
 
-				// End the dialog.
-				EndDialog(hwndDlg, key);
-				return TRUE;
-			}
+			// End the dialog.
+			EndDialog(hwndDlg, key);
+			return TRUE;
 
 	default:
 		break;
@@ -455,7 +455,9 @@ void PopulateConflictTable(int* conflictTable)
 		for(unsigned int j = i + 1; j < EMUCMD_MAX; ++j)
 		{
 			if(FCEUD_CommandMapping[i] &&
-				FCEUD_CommandMapping[i] == FCEUD_CommandMapping[j])
+				FCEUD_CommandMapping[i] == FCEUD_CommandMapping[j] &&
+				 // AnS: added the condition that both commands must have the same EMUCMDFLAG_TASEDITOR, or else they are not considered conflicting
+				 (FCEUI_CommandTable[i].flags & EMUCMDFLAG_TASEDITOR) == (FCEUI_CommandTable[j].flags & EMUCMDFLAG_TASEDITOR))
 			{
 				conflictTable[i] = 1;
 				conflictTable[j] = 1;

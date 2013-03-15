@@ -25,6 +25,7 @@
 #include "debugger.h"
 #include "../../fceu.h"
 #include "../../cart.h"
+#include "../../cheat.h" // For FCEU_LoadGameCheats()
 
 static HWND pwindow = 0;	    //Handle to Cheats dialog
 HWND hCheat = 0;			    //mbg merge 7/19/06 had to add
@@ -60,30 +61,36 @@ char GGcode[10];
 int GGlist[GGLISTSIZE];
 static int dontupdateGG; //this eliminates recursive crashing
 
+bool dodecode;
+
 HWND hGGConv;
 
 void EncodeGG(char *str, int a, int v, int c);
 void ListGGAddresses();
 
-uint16 StrToU16(char *s) {
+uint16 StrToU16(char *s)
+{
 	unsigned int ret=0;
 	sscanf(s,"%4x",&ret);
 	return ret;
 }
 
-uint8 StrToU8(char *s) {
+uint8 StrToU8(char *s)
+{
 	unsigned int ret=0;
 	sscanf(s,"%2x",&ret);
 	return ret;
 }
 
-char *U16ToStr(uint16 a) {
+char *U16ToStr(uint16 a)
+{
 	static char str[5];
 	sprintf(str,"%04X",a);
 	return str;
 }
 
-char *U8ToStr(uint8 a) {
+char *U8ToStr(uint8 a)
+{
 	static char str[3];
 	sprintf(str,"%02X",a);
 	return str;
@@ -91,25 +98,44 @@ char *U8ToStr(uint8 a) {
 
 static HWND hwndLB;
 //int RedoCheatsCallB(char *name, uint32 a, uint8 v, int s) { //bbit edited: this commented out line was changed to the below for the new fceud
-int RedoCheatsCallB(char *name, uint32 a, uint8 v, int compare,int s,int type,void*data) {
+int RedoCheatsCallB(char *name, uint32 a, uint8 v, int c, int s, int type, void*data)
+{
 	char str[259] = { 0 };
 
-	//strcpy(str,(s?"* ":"  "));
-	//strcat(str,name);
-	if(name[0] == 0)sprintf(str,"%s%04X=%02X",s?"* ":"  ",(int)a,(int)v);
-	else sprintf(str,"%s%s",s?"* ":"  ",name);
+	strcpy(str,(s?"* ":"  "));
+	if(name[0] == 0) {
+		if(a >= 0x8000) {
+			EncodeGG(str+2, a, v, c);
+		} else {
+			if(c == -1) sprintf(str+2,"%04X:%02X",(int)a,(int)v);
+			else sprintf(str+2,"%04X?%02X:%02X",(int)a,(int)c,(int)v);
+		}
+	}
+	else strcat(str,name);
 
 	SendDlgItemMessage(hwndLB,IDC_LIST_CHEATS,LB_ADDSTRING,0,(LPARAM)(LPSTR)str);
 	return 1;
 }
 
-void RedoCheatsLB(HWND hwndDlg) {
-	SendDlgItemMessage(hwndDlg,IDC_LIST_CHEATS,LB_RESETCONTENT,0,0);
-	hwndLB=hwndDlg;
-	FCEUI_ListCheats(RedoCheatsCallB,0);
+void RedoCheatsLB(HWND hwndDlg)
+{
+	SendDlgItemMessage(hwndDlg, IDC_LIST_CHEATS, LB_RESETCONTENT, 0, 0);
+	hwndLB = hwndDlg;
+	FCEUI_ListCheats(RedoCheatsCallB, 0);
+
+	if (selcheat >= 0)
+	{
+		EnableWindow(GetDlgItem(hCheat, IDC_BTN_CHEAT_DEL), TRUE);
+		EnableWindow(GetDlgItem(hCheat, IDC_BTN_CHEAT_UPD), TRUE);
+	} else
+	{
+		EnableWindow(GetDlgItem(hCheat, IDC_BTN_CHEAT_DEL), FALSE);
+		EnableWindow(GetDlgItem(hCheat, IDC_BTN_CHEAT_UPD), FALSE);
+	}
 }
 
-int ShowResultsCallB(uint32 a, uint8 last, uint8 current) {
+int ShowResultsCallB(uint32 a, uint8 last, uint8 current)
+{
 	char temp[16];
 
 	sprintf(temp,"$%04X:  %02X | %02X",(unsigned int)a,last,current);
@@ -117,7 +143,8 @@ int ShowResultsCallB(uint32 a, uint8 last, uint8 current) {
 	return 1;
 }
 
-void ShowResults(HWND hwndDlg) {
+void ShowResults(HWND hwndDlg)
+{
 	int n=FCEUI_CheatSearchGetCount();
 	int t;
 	char str[20];
@@ -139,7 +166,8 @@ void ShowResults(HWND hwndDlg) {
 	SetDlgItemText(hwndDlg,IDC_CHEAT_BOX_POSSIBILITIES,str);
 }
 
-void EnableCheatButtons(HWND hwndDlg, int enable) {
+void EnableCheatButtons(HWND hwndDlg, int enable)
+{
 	EnableWindow(GetDlgItem(hwndDlg,IDC_CHEAT_VAL_KNOWN),enable);
 	EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_KNOWN),enable);
 	EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_EQ),enable);
@@ -148,7 +176,8 @@ void EnableCheatButtons(HWND hwndDlg, int enable) {
 	EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_LT),enable);
 }
 
-BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
 	LOGFONT lf;
 	RECT wrect;
 
@@ -157,9 +186,11 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 	char *name;
 	uint32 a;
 	uint8 v;
+	int c;
 	int s;
 
-	switch (uMsg) {
+	switch (uMsg)
+	{
 		case WM_INITDIALOG:
 			if (ChtPosX==-32000) ChtPosX=0; //Just in case
 			if (ChtPosY==-32000) ChtPosY=0;
@@ -175,6 +206,7 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 
 			SendDlgItemMessage(hwndDlg,IDC_CHEAT_ADDR,WM_SETFONT,(WPARAM)hNewFont,FALSE);
 			SendDlgItemMessage(hwndDlg,IDC_CHEAT_VAL,WM_SETFONT,(WPARAM)hNewFont,FALSE);
+			SendDlgItemMessage(hwndDlg,IDC_CHEAT_COM,WM_SETFONT,(WPARAM)hNewFont,FALSE);
 			SendDlgItemMessage(hwndDlg,IDC_CHEAT_VAL_KNOWN,WM_SETFONT,(WPARAM)hNewFont,FALSE);
 			SendDlgItemMessage(hwndDlg,IDC_CHEAT_LIST_POSSIBILITIES,WM_SETFONT,(WPARAM)hNewFont,FALSE);
 			SendDlgItemMessage(hwndDlg,IDC_CHEAT_VAL_NE_BY,WM_SETFONT,(WPARAM)hNewFont,FALSE);
@@ -184,6 +216,7 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 			//text limits
 			SendDlgItemMessage(hwndDlg,IDC_CHEAT_ADDR,EM_SETLIMITTEXT,4,0);
 			SendDlgItemMessage(hwndDlg,IDC_CHEAT_VAL,EM_SETLIMITTEXT,2,0);
+			SendDlgItemMessage(hwndDlg,IDC_CHEAT_COM,EM_SETLIMITTEXT,2,0);
 			SendDlgItemMessage(hwndDlg,IDC_CHEAT_NAME,EM_SETLIMITTEXT,256,0);
 			SendDlgItemMessage(hwndDlg,IDC_CHEAT_VAL_KNOWN,EM_SETLIMITTEXT,2,0);
 			SendDlgItemMessage(hwndDlg,IDC_CHEAT_VAL_NE_BY,EM_SETLIMITTEXT,2,0);
@@ -192,9 +225,8 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 
 			//disable or enable buttons
 			EnableWindow(GetDlgItem(hwndDlg,IDC_CHEAT_VAL_KNOWN),FALSE);
-			EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_DEL),FALSE);
-			EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_UPD),FALSE);
-			if (scrollnum) {
+			if (scrollnum)
+			{
 				EnableCheatButtons(hwndDlg,TRUE);
 				ShowResults(hwndDlg);
 				sprintf(str,"%d Possibilities",(int)FCEUI_CheatSearchGetCount());
@@ -203,11 +235,8 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 			else EnableCheatButtons(hwndDlg,FALSE);
 
 			//misc setup
-			//RedoCheatsLB(hwndDlg); //adelikat: Moved to UpdateCheatsAdded() function
 			searchdone=0;
 			SetDlgItemText(hwndDlg,IDC_CHEAT_VAL_KNOWN,(LPTSTR)U8ToStr(knownvalue));
-			InitializeCheatsAdded(hwndDlg);
-
 			// Enable Context Sub-Menus
 			hCheatcontext = LoadMenu(fceu_hInstance,"CHEATCONTEXTMENUS");
 
@@ -402,14 +431,34 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 							}
 						break;
 						case IDC_BTN_CHEAT_ADD:
+							dodecode = true;
+
 							GetDlgItemText(hwndDlg,IDC_CHEAT_ADDR,str,5);
+							if(str[0] != 0) dodecode = false;
 							a=StrToU16(str);
 							GetDlgItemText(hwndDlg,IDC_CHEAT_VAL,str,3);
+							if(str[0] != 0) dodecode = false;
 							v=StrToU8(str);
+							GetDlgItemText(hwndDlg,IDC_CHEAT_COM,str,3);
+							if(str[0] != 0) dodecode = false;
+							c=(str[0] == 0)?-1:StrToU8(str);
 							GetDlgItemText(hwndDlg,IDC_CHEAT_NAME,str,256);
+							if(dodecode && (strlen(str) == 6 || strlen(str) == 8)) {
+								if(FCEUI_DecodeGG(str, &GGaddr, &GGval, &GGcomp)) {
+									a = GGaddr;
+									v = GGval;
+									c = GGcomp;
+								}
+							}
 //							if (FCEUI_AddCheat(str,a,v)) { //bbit edited: replaced this with the line below
-							if (FCEUI_AddCheat(str,a,v,-1,1)) {
-							if(str[0] == 0)sprintf(str,"%04X=%02X",(int)a,(int)v); //bbit edited: added this line to give your cheat a name if you didn't supply one
+							if (FCEUI_AddCheat(str,a,v,c,1)) {
+								if(str[0] == 0) {
+									if(a >= 0x8000) EncodeGG(str, a, v, c);
+									else {
+										if(c == -1) sprintf(str,"%04X:%02X",(int)a,(int)v); //bbit edited: added this line to give your cheat a name if you didn't supply one
+										else sprintf(str,"%04X?%02X:%02X",(int)a,(int)c,(int)v);
+									}
+								}
 								strcpy(str2,"* ");
 								strcat(str2,str);
 								SendDlgItemMessage(hwndDlg,IDC_LIST_CHEATS,LB_ADDSTRING,0,(LPARAM)(LPSTR)str2);
@@ -417,18 +466,18 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 								SendDlgItemMessage(hwndDlg,IDC_LIST_CHEATS,LB_SETCURSEL,selcheat,0);
 								SendDlgItemMessage(hwndDlg,IDC_LIST_CHEATS,LB_SETSEL,(WPARAM)1,selcheat);
 
-								SetDlgItemText(hwndDlg,IDC_CHEAT_ADDR,(LPTSTR)U16ToStr(a));
-								SetDlgItemText(hwndDlg,IDC_CHEAT_VAL,(LPTSTR)U8ToStr(v));
-
-								EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_DEL),TRUE);
-								EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_UPD),TRUE);
+								SetDlgItemText(hwndDlg,IDC_CHEAT_ADDR,(LPTSTR)"");
+								SetDlgItemText(hwndDlg,IDC_CHEAT_VAL,(LPTSTR)"");
+								SetDlgItemText(hwndDlg,IDC_CHEAT_COM,(LPTSTR)"");
+								SetDlgItemText(hwndDlg,IDC_CHEAT_NAME,(LPTSTR)"");
 							}
-							if(hMemView)UpdateColorTable(); //if the memory viewer is open then update any blue freeze locations in it as well
+							if (hMemView) UpdateColorTable(); //if the memory viewer is open then update any blue freeze locations in it as well
 							UpdateCheatsAdded();
 							break;
 						case ID_CHEATLISTPOPUP_DELETESELECTEDCHEATS:
 						case IDC_BTN_CHEAT_DEL:
-							if (selcheatcount > 1) {
+							if (selcheatcount > 1)
+							{
 								if (IDYES == MessageBox(hwndDlg, "Multiple cheats selected. Continue with delete?", "Delete multiple cheats?", MB_ICONQUESTION | MB_YESNO)) { //Get message box
 									selcheat=-1;
 									for (int selcheattemp=SendDlgItemMessage(hwndDlg,IDC_LIST_CHEATS,LB_GETCOUNT,0,0)-1;selcheattemp>=0;selcheattemp--) {
@@ -439,10 +488,9 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 									}
 									SetDlgItemText(hwndDlg,IDC_CHEAT_ADDR,(LPTSTR)"");
 									SetDlgItemText(hwndDlg,IDC_CHEAT_VAL,(LPTSTR)"");
+									SetDlgItemText(hwndDlg,IDC_CHEAT_COM,(LPTSTR)"");
 									SetDlgItemText(hwndDlg,IDC_CHEAT_NAME,(LPTSTR)"");
-									EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_DEL),FALSE);
-									EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_UPD),FALSE);
-									if(hMemView)UpdateColorTable(); //if the memory viewer is open then update any blue freeze locations in it as well
+									if (hMemView) UpdateColorTable(); //if the memory viewer is open then update any blue freeze locations in it as well
 									UpdateCheatsAdded();
 								}
 							} else {
@@ -452,28 +500,46 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 									selcheat=-1;
 									SetDlgItemText(hwndDlg,IDC_CHEAT_ADDR,(LPTSTR)"");
 									SetDlgItemText(hwndDlg,IDC_CHEAT_VAL,(LPTSTR)"");
+									SetDlgItemText(hwndDlg,IDC_CHEAT_COM,(LPTSTR)"");
 									SetDlgItemText(hwndDlg,IDC_CHEAT_NAME,(LPTSTR)"");
 								}
-								EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_DEL),FALSE);
-								EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_UPD),FALSE);
-								if(hMemView)UpdateColorTable(); //if the memory viewer is open then update any blue freeze locations in it as well
+								if (hMemView) UpdateColorTable(); //if the memory viewer is open then update any blue freeze locations in it as well
 								UpdateCheatsAdded();
 							}
 							break;
 						case IDC_BTN_CHEAT_UPD:
-							if (selcheat < 0) break;
+							dodecode = true;
 
+							if (selcheat < 0) break;
 							GetDlgItemText(hwndDlg,IDC_CHEAT_ADDR,str,5);
+							if(str[0] != 0) dodecode = false;
 							a=StrToU16(str);
 							GetDlgItemText(hwndDlg,IDC_CHEAT_VAL,str,3);
+							if(str[0] != 0) dodecode = false;
 							v=StrToU8(str);
+							GetDlgItemText(hwndDlg,IDC_CHEAT_COM,str,3);
+							if(str[0] != 0) dodecode = false;
+							c=(str[0] == 0)?-1:StrToU8(str);
 							GetDlgItemText(hwndDlg,IDC_CHEAT_NAME,str,256);
+							if(dodecode && (strlen(str) == 6 || strlen(str) == 8)) {
+								if(FCEUI_DecodeGG(str, &GGaddr, &GGval, &GGcomp)) {
+									a = GGaddr;
+									v = GGval;
+									c = GGcomp;
+								}
+							}
 //							FCEUI_SetCheat(selcheat,str,a,v,-1); //bbit edited: replaced this with the line below
-							FCEUI_SetCheat(selcheat,str,a,v,-1,-1,1);
+							FCEUI_SetCheat(selcheat,str,a,v,c,-1,1);
 //							FCEUI_GetCheat(selcheat,&name,&a,&v,&s); //bbit edited: replaced this with the line below
-							FCEUI_GetCheat(selcheat,&name,&a,&v,NULL,&s,NULL);
+							FCEUI_GetCheat(selcheat,&name,&a,&v,&c,&s,NULL);
 							strcpy(str2,(s?"* ":"  "));
-							if(str[0] == 0)sprintf(str,"%04X=%02X",(int)a,(int)v); //bbit edited: added this line to give your cheat a name if you didn't supply one
+							if(str[0] == 0) {
+								if(a >= 0x8000) EncodeGG(str, a, v, c);
+								else {
+									if(c == -1) sprintf(str,"%04X:%02X",(int)a,(int)v); //bbit edited: added this line to give your cheat a name if you didn't supply one
+									else sprintf(str,"%04X?%02X:%02X",(int)a,(int)c,(int)v);
+								}
+							}
 							strcat(str2,str);
 
 							SendDlgItemMessage(hwndDlg,IDC_LIST_CHEATS,LB_DELETESTRING,selcheat,0);
@@ -483,8 +549,41 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 
 							SetDlgItemText(hwndDlg,IDC_CHEAT_ADDR,(LPTSTR)U16ToStr(a));
 							SetDlgItemText(hwndDlg,IDC_CHEAT_VAL,(LPTSTR)U8ToStr(v));
+							if(c == -1)	SetDlgItemText(hwndDlg,IDC_CHEAT_COM,(LPTSTR)"");
+							else SetDlgItemText(hwndDlg,IDC_CHEAT_COM,(LPTSTR)U8ToStr(c));
 							if(hMemView)UpdateColorTable(); //if the memory viewer is open then update any blue freeze locations in it as well
 							break;
+						case IDC_BTN_CHEAT_ADDFROMFILE:
+						{
+							OPENFILENAME ofn;
+							memset(&ofn, 0, sizeof(ofn));
+							ofn.lStructSize = sizeof(ofn);
+							ofn.hwndOwner = hwndDlg;
+							ofn.hInstance = fceu_hInstance;
+							ofn.lpstrTitle = "Open Cheats file";
+							const char filter[] = "Cheat files (*.cht)\0*.cht\0All Files (*.*)\0*.*\0\0";
+							ofn.lpstrFilter = filter;
+
+							char nameo[2048] = {0};
+							ofn.lpstrFile = nameo;							
+							ofn.nMaxFile = 2048;
+							ofn.Flags = OFN_EXPLORER|OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_FILEMUSTEXIST;
+							std::string initdir = FCEU_GetPath(FCEUMKF_CHEAT);
+							ofn.lpstrInitialDir = initdir.c_str();
+
+							if (GetOpenFileName(&ofn))
+							{
+								FILE* file = FCEUD_UTF8fopen(nameo, "rb");
+								if (file)
+								{
+									FCEU_LoadGameCheats(file);
+									if (hMemView) UpdateColorTable(); //if the memory viewer is open then update any blue freeze locations in it as well
+									UpdateCheatsAdded();
+									savecheats = 1;
+								}
+							}
+							break;
+						}
 						case IDC_BTN_CHEAT_RESET:
 							FCEUI_CheatSearchBegin();
 							ShowResults(hwndDlg);
@@ -554,13 +653,18 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 							for (int selcheattemp=SendDlgItemMessage(hwndDlg,IDC_LIST_CHEATS,LB_GETCOUNT,0,0)-1;selcheattemp>=0;selcheattemp--) {
 								if (SendDlgItemMessage(hwndDlg,IDC_LIST_CHEATS,LB_GETSEL,selcheattemp,0)) {
 //									FCEUI_GetCheat(selcheattemp,&name,&a,&v,&s); //bbit edited: replaced this with the line below
-									FCEUI_GetCheat(selcheattemp,&name,&a,&v,NULL,&s,NULL);
+									FCEUI_GetCheat(selcheattemp,&name,&a,&v,&c,&s,NULL);
 //									FCEUI_SetCheat(selcheattemp,0,-1,-1,s^=1);//bbit edited: replaced this with the line below
-									FCEUI_SetCheat(selcheattemp,0,-1,-1,-1,s^=1,1);
-									if(name[0] == 0)sprintf(str,"%s%04X=%02X",s?"* ":"  ",(unsigned int)a,(unsigned int)v);
-									else sprintf(str,"%s%s",s?"* ":"  ",name);
-									//strcpy(str,(s?"* ":"  "));
-									//strcat(str,name);
+									FCEUI_SetCheat(selcheattemp,0,-1,-1,-2,s^=1,1);
+									strcpy(str,(s?"* ":"  "));
+									if(name[0] == 0) {
+										if(a >= 0x8000) EncodeGG(str+2, a, v, c);
+										else {
+											if(c == -1) sprintf(str+2,"%04X:%02X",(int)a,(int)v); //bbit edited: added this line to give your cheat a name if you didn't supply one
+											else sprintf(str+2,"%04X?%02X:%02X",(int)a,(int)c,(int)v);
+										}
+									}
+									else strcat(str,name);
 									SendDlgItemMessage(hwndDlg,IDC_LIST_CHEATS,LB_DELETESTRING,selcheattemp,0);
 									SendDlgItemMessage(hwndDlg,IDC_LIST_CHEATS,LB_INSERTSTRING,selcheattemp,(LPARAM)(LPSTR)str);
 								}
@@ -575,14 +679,18 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 				case LBN_SELCHANGE:
 					switch (LOWORD(wParam)) {
 						case IDC_LIST_CHEATS:
-							selcheat = SendDlgItemMessage(hwndDlg,IDC_LIST_CHEATS,LB_GETCURSEL,0,0);
-							selcheatcount = SendDlgItemMessage(hwndDlg,IDC_LIST_CHEATS,LB_GETSELCOUNT,0,0);
+							selcheat = SendDlgItemMessage(hwndDlg, IDC_LIST_CHEATS, LB_GETCURSEL, 0, 0);
+							selcheatcount = SendDlgItemMessage(hwndDlg, IDC_LIST_CHEATS, LB_GETSELCOUNT, 0, 0);
 							if (selcheat < 0) break;
 
-							FCEUI_GetCheat(selcheat,&name,&a,&v,NULL,&s,NULL);
+							FCEUI_GetCheat(selcheat,&name,&a,&v,&c,&s,NULL);
 							SetDlgItemText(hwndDlg,IDC_CHEAT_NAME,(LPTSTR)name);
 							SetDlgItemText(hwndDlg,IDC_CHEAT_ADDR,(LPTSTR)U16ToStr(a));
 							SetDlgItemText(hwndDlg,IDC_CHEAT_VAL,(LPTSTR)U8ToStr(v));
+							if (c == -1)
+								SetDlgItemText(hwndDlg,IDC_CHEAT_COM,(LPTSTR)"");
+							else
+								SetDlgItemText(hwndDlg,IDC_CHEAT_COM,(LPTSTR)U8ToStr(c));
 
 							EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_DEL),TRUE);
 							EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_UPD),TRUE);
@@ -601,6 +709,7 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 							SetDlgItemText(hwndDlg,IDC_CHEAT_ADDR,(LPTSTR)str2);
 							strcpy(str2,str+13);
 							SetDlgItemText(hwndDlg,IDC_CHEAT_VAL,(LPTSTR)str2);
+							SetDlgItemText(hwndDlg,IDC_CHEAT_COM,(LPTSTR)"");
 							break;
 					}
 					break;
@@ -623,8 +732,10 @@ BOOL CALLBACK CheatConsoleCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM l
 }
 
 
-void ConfigCheats(HWND hParent) {
-	if (!GameInfo) {
+void ConfigCheats(HWND hParent)
+{
+	if (!GameInfo)
+	{
 		FCEUD_PrintError("You must have a game loaded before you can manipulate cheats.");
 		return;
 	}
@@ -637,8 +748,11 @@ void ConfigCheats(HWND hParent) {
 	{
 		selcheat=-1;
 		CheatWindow=1;
-		if (CheatStyle) pwindow = hCheat = CreateDialog(fceu_hInstance,"CHEATCONSOLE",NULL,CheatConsoleCallB);
-		else DialogBox(fceu_hInstance,"CHEATCONSOLE",hParent,CheatConsoleCallB);
+		if (CheatStyle)
+			pwindow = hCheat = CreateDialog(fceu_hInstance, "CHEATCONSOLE", NULL, CheatConsoleCallB);
+		else
+			DialogBox(fceu_hInstance,"CHEATCONSOLE",hParent,CheatConsoleCallB);
+		UpdateCheatsAdded();
 	} else
 	{
 		ShowWindow(hCheat, SW_SHOWNORMAL);
@@ -654,54 +768,34 @@ void UpdateCheatList()
 		ShowResults(pwindow);
 }
 
-//This is necessary during the intialization of the cheats dialog, it is redundant with UpdateCheatsAdded except the handle is passed by CheatConsoleCallB
-void InitializeCheatsAdded(HWND hwndDlg)
-{
-	char temp[64];
-	if (FrozenAddressCount < 256)
-			sprintf(temp,"Active Cheats %d", FrozenAddressCount);
-		
-		else if (FrozenAddressCount == 256)
-		{
-			sprintf(temp,"Active Cheats %d (Max Limit)", FrozenAddressCount);
-			EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_ADD),FALSE);
-		}
-		else
-		{
-			sprintf(temp,"%d Error: Too many cheats loaded!", FrozenAddressCount);
-			EnableWindow(GetDlgItem(hwndDlg,IDC_BTN_CHEAT_ADD),FALSE);
-		}
-		SetDlgItemText(hwndDlg,201,temp);
-		RedoCheatsLB(hwndDlg);
-}
-
 //Used by cheats and external dialogs such as hex editor to update items in the cheat search dialog
 void UpdateCheatsAdded()
 {
 	char temp[64];
-	if(!pwindow)
-		return;
+	if (FrozenAddressCount < 256)
+	{
+		sprintf(temp,"Active Cheats %d", FrozenAddressCount);
+		EnableWindow(GetDlgItem(hCheat, IDC_BTN_CHEAT_ADD), TRUE);
+		EnableWindow(GetDlgItem(hCheat, IDC_BTN_CHEAT_ADDFROMFILE), TRUE);
+	} else if (FrozenAddressCount == 256)
+	{
+		sprintf(temp,"Active Cheats %d (Max Limit)", FrozenAddressCount);
+		EnableWindow(GetDlgItem(hCheat, IDC_BTN_CHEAT_ADD), FALSE);
+		EnableWindow(GetDlgItem(hCheat, IDC_BTN_CHEAT_ADDFROMFILE), FALSE);
+	}
 	else
 	{
-		if (FrozenAddressCount < 256)
-			sprintf(temp,"Active Cheats %d", FrozenAddressCount);
-		
-		else if (FrozenAddressCount == 256)
-		{
-			sprintf(temp,"Active Cheats %d (Max Limit)", FrozenAddressCount);
-			EnableWindow(GetDlgItem(hCheat,IDC_BTN_CHEAT_ADD),FALSE);
-		}
-		else
-		{
-			sprintf(temp,"%d Error: Too many cheats loaded!", FrozenAddressCount);
-			EnableWindow(GetDlgItem(hCheat,IDC_BTN_CHEAT_ADD),FALSE);
-		}
-		SetDlgItemText(hCheat,201,temp);
-		RedoCheatsLB(hCheat);
+		sprintf(temp,"%d Error: Too many cheats loaded!", FrozenAddressCount);
+		EnableWindow(GetDlgItem(hCheat, IDC_BTN_CHEAT_ADD), FALSE);
+		EnableWindow(GetDlgItem(hCheat, IDC_BTN_CHEAT_ADDFROMFILE), FALSE);
 	}
+
+	SetDlgItemText(hCheat,201,temp);
+	RedoCheatsLB(hCheat);
 }
 
-BOOL CALLBACK GGConvCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+BOOL CALLBACK GGConvCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
 	char str[100];
 	int i;
 
@@ -802,6 +896,8 @@ BOOL CALLBACK GGConvCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 									SetDlgItemText(hCheat,IDC_CHEAT_ADDR,(LPTSTR)U16ToStr(GGaddr));
 									SetDlgItemText(hCheat,IDC_CHEAT_VAL,(LPTSTR)U8ToStr(GGval));
+									if(GGcomp == -1) SetDlgItemText(hwndDlg,IDC_CHEAT_COM,(LPTSTR)"");
+									else SetDlgItemText(hwndDlg,IDC_CHEAT_COM,(LPTSTR)U8ToStr(GGcomp));
 
 									EnableWindow(GetDlgItem(hCheat,IDC_BTN_CHEAT_DEL),TRUE);
 									EnableWindow(GetDlgItem(hCheat,IDC_BTN_CHEAT_UPD),TRUE);
@@ -829,7 +925,8 @@ BOOL CALLBACK GGConvCallB(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 //The code in this function is a modified version
 //of Chris Covell's work - I'd just like to point that out
-void EncodeGG(char *str, int a, int v, int c){
+void EncodeGG(char *str, int a, int v, int c)
+{
 	uint8 num[8];
 	static char lets[16]={'A','P','Z','L','G','I','T','Y','E','O','X','U','K','S','V','N'};
 	int i;
@@ -857,7 +954,8 @@ void EncodeGG(char *str, int a, int v, int c){
 	return;
 }
 
-void ListGGAddresses(){
+void ListGGAddresses()
+{
 	uint32 i, j = 0; //mbg merge 7/18/06 changed from int
 	char str[20];
 	SendDlgItemMessage(hGGConv,IDC_LIST_GGADDRESSES,LB_RESETCONTENT,0,0);
@@ -876,14 +974,13 @@ void ListGGAddresses(){
 			SendDlgItemMessage(hGGConv,IDC_LIST_GGADDRESSES,LB_ADDSTRING,0,(LPARAM)(LPSTR)str);
 		}
 	}
-
-
 }
 
 //A different model for this could be to have everything
 //set in the INITDIALOG message based on the internal
 //variables, and have this simply call that.
-void SetGGConvFocus(int address,int compare){
+void SetGGConvFocus(int address,int compare)
+{
 	char str[10];
 	if(!hGGConv)DoGGConv();
 	GGaddr = address;

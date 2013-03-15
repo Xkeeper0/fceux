@@ -116,7 +116,7 @@ Option         Value   Description\n\
 --user         x       Set the nickname to use in network play.\n\
 --pass         x       Set password to use for connecting to the server.\n\
 --netkey       s       Use string 's' to create a unique session for the game loaded.\n\
---players      x       Set the number of local players.\n\
+--players      x       Set the number of local players in a network play session.\n\
 --rp2mic       {0,1}   Replace Port 2 Start with microphone (Famicom).\n\
 --nogui                Don't load the GTK GUI";
 
@@ -160,23 +160,6 @@ static void ShowUsage(char *prog)
 	//printf("Linked with GTK version %d.%d.%d\n", GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION );
 #endif
 	
-}
-
-/**
- * Prints an error string to STDOUT.
- */
-void
-FCEUD_PrintError(char *s)
-{
-	puts(s);
-}
-
-/**
- * Prints the given string to STDOUT.
- */
-void FCEUD_Message(char *s)
-{
-	fputs(s, stdout);
 }
 
 /**
@@ -632,7 +615,53 @@ int main(int argc, char *argv[])
 	  SDL_Quit();
 	  return 0;
 	}
+
+	// If x/y res set to 0, store current display res in SDL.LastX/YRes
+	int yres, xres;
+	g_config->getOption("SDL.XResolution", &xres);
+	g_config->getOption("SDL.YResolution", &yres);
+	const SDL_VideoInfo* vid_info = SDL_GetVideoInfo();
+	if(xres == 0) 
+    {
+        if(vid_info != NULL)
+        {
+			g_config->setOption("SDL.LastXRes", vid_info->current_w);
+        }
+        else
+        {
+			g_config->setOption("SDL.LastXRes", 512);
+        }
+    }
+	else
+	{
+		g_config->setOption("SDL.LastXRes", xres);
+	}	
+    if(yres == 0)
+    {
+        if(vid_info != NULL)
+        {
+			g_config->setOption("SDL.LastYRes", vid_info->current_h);
+        }
+        else
+        {
+			g_config->setOption("SDL.LastYRes", 448);
+        }
+    } 
+	else
+	{
+		g_config->setOption("SDL.LastYRes", yres);
+	}	
 	
+	int autoResume;
+	g_config->getOption("SDL.AutoResume", &autoResume);
+	if(autoResume)
+	{
+		AutoResumePlay = true;
+	}
+	else
+	{
+		AutoResumePlay = false;
+	}
 	// check to see if recording HUD to AVI is enabled
 	int rh;
 	g_config->getOption("SDL.RecordHUD", &rh);
@@ -894,11 +923,23 @@ void FCEUD_Message(const char *text)
 /**
 * Shows an error message in a message box.
 * (For now: prints to stderr.)
+* 
+* If running in GTK mode, display a dialog message box of the error.
 *
 * @param errormsg Text of the error message.
 **/
 void FCEUD_PrintError(const char *errormsg)
 {
+#ifdef GTK
+	if(gtkIsStarted == true && noGui == 0)
+	{
+		GtkWidget* d;
+		d = gtk_message_dialog_new(GTK_WINDOW(MainWindow), GTK_DIALOG_MODAL,        GTK_MESSAGE_ERROR, GTK_BUTTONS_OK, errormsg);
+		gtk_dialog_run(GTK_DIALOG(d));
+		gtk_widget_destroy(d);
+	}
+#endif
+
 	fprintf(stderr, "%s\n", errormsg);
 }
 

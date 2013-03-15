@@ -36,7 +36,11 @@
 #include "utils/endian.h"
 #include "utils/memory.h"
 #include "utils/md5.h"
+#ifdef _SYSTEM_MINIZIP
+#include <minizip/unzip.h>
+#else
 #include "utils/unzip.h"
+#endif
 #include "driver.h"
 #include "types.h"
 #include "fceu.h"
@@ -173,11 +177,11 @@ FileBaseInfo DetermineFileBase(const char *f) {
 
 	char drv[PATH_MAX], dir[PATH_MAX], name[PATH_MAX], ext[PATH_MAX];
 	splitpath(f,drv,dir,name,ext);
- 
+
         if(dir[0] == 0) strcpy(dir,".");
 
-	return FileBaseInfo((std::string)drv + dir,name,ext);	
-	
+	return FileBaseInfo((std::string)drv + dir,name,ext);
+
 }
 
 inline FileBaseInfo DetermineFileBase(const std::string& str) { return DetermineFileBase(str.c_str()); }
@@ -235,7 +239,7 @@ zpfail:
 
 		unz_file_info ufo;
 		unzGetCurrentFileInfo(tz,&ufo,0,0,0,0,0,0);
-		
+
 		int size = ufo.uncompressed_size;
 		EMUFILE_MEMORY* ms = new EMUFILE_MEMORY(size);
 		unzReadCurrentFile(tz,ms->buf(),ufo.uncompressed_size);
@@ -246,7 +250,7 @@ zpfail:
 		fceufp->stream = ms;
 		fceufp->size = size;
 		return fceufp;
-		
+
 	}
 
 	return 0;
@@ -267,7 +271,7 @@ FCEUFILE * FCEU_fopen(const char *path, const char *ipsfn, char *mode, char *ext
 
 	std::string archive,fname,fileToOpen;
 	FCEU_SplitArchiveFilename(path,archive,fname,fileToOpen);
-	
+
 
 	//try to setup the ips file
 	if(ipsfn && read)
@@ -301,14 +305,14 @@ FCEUFILE * FCEU_fopen(const char *path, const char *ipsfn, char *mode, char *ext
 			//try to read a gzipped file
 			{
 				uint32 magic;
-				
+
 				magic = fp->fgetc();
 				magic|=fp->fgetc()<<8;
 				magic|=fp->fgetc()<<16;
 				fp->fseek(0,SEEK_SET);
 
 				if(magic==0x088b1f) {
-					 // maybe gzip... 
+					 // maybe gzip...
 
 					gzFile gzfile = gzopen(fileToOpen.c_str(),"rb");
 					if(gzfile) {
@@ -333,7 +337,7 @@ FCEUFILE * FCEU_fopen(const char *path, const char *ipsfn, char *mode, char *ext
 				}
 			}
 
-		
+
 			//open a plain old file
 			fceufp = new FCEUFILE();
 			fceufp->filename = fileToOpen;
@@ -352,7 +356,7 @@ FCEUFILE * FCEU_fopen(const char *path, const char *ipsfn, char *mode, char *ext
 			if(archive == "")
 				if(index != -1)
 					fceufp = FCEUD_OpenArchiveIndex(asr, fileToOpen, index);
-				else 
+				else
 					fceufp = FCEUD_OpenArchive(asr, fileToOpen, 0);
 			else
 				fceufp = FCEUD_OpenArchive(asr, archive, &fname);
@@ -477,66 +481,90 @@ void FCEUI_SetDirOverride(int which, char *n)
 
 std::string  FCEU_GetPath(int type)
 {
-	char ret[FILENAME_MAX];
-	switch(type)
+	switch (type)
 	{
 		case FCEUMKF_STATE:
+		{
 			if(odirs[FCEUIOD_STATES])
 				return (odirs[FCEUIOD_STATES]);
 			else
 				return BaseDirectory + PSS + "fcs";
 			break;
+		}
+		case FCEUMKF_CHEAT:
+		{
+			if(odirs[FCEUIOD_CHEATS])
+				return (odirs[FCEUIOD_CHEATS]);
+			else
+				return BaseDirectory + PSS + "cheats";
+			break;
+		}
 		case FCEUMKF_MOVIE:
+		{
 			if(odirs[FCEUIOD_MOVIES])
 				return (odirs[FCEUIOD_MOVIES]);
 			else
 				return BaseDirectory + PSS + "movies";
 			break;
+		}
 		case FCEUMKF_MEMW:
+		{
 			if(odirs[FCEUIOD_MEMW])
 				return (odirs[FCEUIOD_MEMW]);
 			else
 				return "";	//adelikat: 03/02/09 - return null so it defaults to last directory used
 				//return BaseDirectory + PSS + "tools";
 			break;
+		}
 		//adelikat: TODO: this no longer exist and could be removed (but that would require changing a lot of other directory arrays
 		case FCEUMKF_BBOT:
+		{
 			if(odirs[FCEUIOD_BBOT])
 				return (odirs[FCEUIOD_BBOT]);
 			else
 				return BaseDirectory + PSS + "tools";
 			break;
+		}
 		case FCEUMKF_ROMS:
+		{
 			if(odirs[FCEUIOD_ROMS])
 				return (odirs[FCEUIOD_ROMS]);
 			else
 				return "";	//adelikat: removing base directory return, should return null it goes to last used directory
 			break;
+		}
 		case FCEUMKF_INPUT:
+		{
 			if(odirs[FCEUIOD_INPUT])
 				return (odirs[FCEUIOD_INPUT]);
 			else
 				return BaseDirectory + PSS + "tools";
 			break;
+		}
 		case FCEUMKF_LUA:
+		{
 			if(odirs[FCEUIOD_LUA])
 				return (odirs[FCEUIOD_LUA]);
 			else
 				return "";	//adelikat: 03/02/09 - return null so it defaults to last directory used //return BaseDirectory + PSS + "tools";
 			break;
+		}
 		case FCEUMKF_AVI:
+		{
 			if(odirs[FCEUIOD_AVI])
 				return (odirs[FCEUIOD_AVI]);
 			else
 				return "";		//adelikat - 03/02/09 - if no override, should return null and allow the last directory to be used intead
 				//return BaseDirectory + PSS + "tools";
 			break;
+		}
 		case FCEUMKF_TASEDITOR:
+		{
 			return BaseDirectory + PSS + "tools";
-
+			break;
+		}
 	}
-
-	return ret;
+	return "";
 }
 
 std::string FCEU_MakePath(int type, const char* filebase)
@@ -571,7 +599,7 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 	switch(type)
 	{
 		case FCEUMKF_MOVIE:
-			struct stat fileInfo; 
+			struct stat fileInfo;
 			do {
 				if(odirs[FCEUIOD_MOVIES])
 					sprintf(ret,"%s"PSS"%s-%d.fm2",odirs[FCEUIOD_MOVIES],FileBase, id1);
@@ -586,23 +614,22 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 					mfnString = GetMfn();
 				else
 					mfnString = "";
-				
+
 				if (mfnString.length() <= MAX_MOVIEFILENAME_LEN)
 				{
-					mfn = mfnString.c_str();	
+					mfn = mfnString.c_str();
 				} else
 				{
-					//This caps the movie filename length before adding it to the savestate filename.  
+					//This caps the movie filename length before adding it to the savestate filename.
 					//This helps prevent possible crashes from savestate filenames of excessive length.
 					mfnString = mfnString.substr(0, MAX_MOVIEFILENAME_LEN);
 					mfn = mfnString.c_str();
 				}
-				
+
 				if(odirs[FCEUIOD_STATES])
 				{
 					sprintf(ret,"%s"PSS"%s%s.fc%d",odirs[FCEUIOD_STATES],FileBase,mfn,id1);
-				}
-				else
+				} else
 				{
 					sprintf(ret,"%s"PSS"fcs"PSS"%s%s.fc%d",BaseDirectory.c_str(),FileBase,mfn,id1);
 				}
@@ -611,10 +638,30 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 					if(odirs[FCEUIOD_STATES])
 					{
 						sprintf(ret,"%s"PSS"%s%s.fc%d",odirs[FCEUIOD_STATES],FileBase,mfn,id1);
-					}
-					else
+					} else
 					{
 						sprintf(ret,"%s"PSS"fcs"PSS"%s%s.fc%d",BaseDirectory.c_str(),FileBase,mfn,id1);
+					}
+				}
+			}
+			break;
+		case FCEUMKF_RESUMESTATE:
+			{
+				if(odirs[FCEUIOD_STATES])
+				{
+					sprintf(ret,"%s"PSS"%s-resume.fcs",odirs[FCEUIOD_STATES],FileBase);
+				} else
+				{
+					sprintf(ret,"%s"PSS"fcs"PSS"%s-resume.fcs",BaseDirectory.c_str(),FileBase);
+				}
+				if(stat(ret,&tmpstat)==-1)
+				{
+					if(odirs[FCEUIOD_STATES])
+					{
+						sprintf(ret,"%s"PSS"%s-resume.fcs",odirs[FCEUIOD_STATES],FileBase);
+					} else
+					{
+						sprintf(ret,"%s"PSS"fcs"PSS"%s-resume.fcs",BaseDirectory.c_str(),FileBase);
 					}
 				}
 			}
@@ -646,12 +693,21 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 			break;
 		case FCEUMKF_AUTOSTATE:
 			mfnString = GetMfn();
-			mfn = mfnString.c_str();
+			if (mfnString.length() <= MAX_MOVIEFILENAME_LEN)
+			{
+				mfn = mfnString.c_str();
+			} else
+			{
+				//This caps the movie filename length before adding it to the savestate filename.
+				//This helps prevent possible crashes from savestate filenames of excessive length.
+				mfnString = mfnString.substr(0, MAX_MOVIEFILENAME_LEN);
+				mfn = mfnString.c_str();
+			}
+
 			if(odirs[FCEUIOD_STATES])
 			{
 				sprintf(ret,"%s"PSS"%s%s-autosave%d.fcs",odirs[FCEUIOD_STATES],FileBase,mfn,id1);
-			}
-			else
+			} else
 			{
 				sprintf(ret,"%s"PSS"fcs"PSS"%s%s-autosave%d.fcs",BaseDirectory.c_str(),FileBase,mfn,id1);
 			}
@@ -660,8 +716,7 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 				if(odirs[FCEUIOD_STATES])
 				{
 					sprintf(ret,"%s"PSS"%s%s-autosave%d.fcs",odirs[FCEUIOD_STATES],FileBase,mfn,id1);
-				}
-				else
+				} else
 				{
 					sprintf(ret,"%s"PSS"fcs"PSS"%s%s-autosave%d.fcs",BaseDirectory.c_str(),FileBase,mfn,id1);
 				}
@@ -699,7 +754,7 @@ std::string FCEU_MakeFName(int type, int id1, const char *cd1)
 				sprintf(ret,"%s"PSS"fcs"PSS"%s*.fc?",BaseDirectory.c_str(),FileBase);
 			break;
 	}
-	
+
 	//convert | to . for archive filenames.
 	return mass_replace(ret,"|",".");
 }

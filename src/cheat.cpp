@@ -86,8 +86,8 @@ struct CHEATF *cheats=0,*cheatsl=0;
 #define CHEATC_EXCLUDED 0x4000
 #define CHEATC_NOSHOW   0xC000
 
-static uint16 *CheatComp=0;
-static int savecheats;
+static uint16 *CheatComp = 0;
+int savecheats = 0;
 
 static DECLFR(SubCheatsRead)
 {
@@ -215,7 +215,6 @@ void FCEU_LoadGameCheats(FILE *override)
 	}
 
 	FCEU_DispMessage("Cheats file loaded.",0); //Tells user a cheats file was loaded.
-	FCEU_printf("Cheats file loaded.\n",0);	 //Sends message to message log.
 	while(fgets(linebuf,2048,fp)>0)
 	{
 		char *tbuf=linebuf;
@@ -269,7 +268,7 @@ void FCEU_LoadGameCheats(FILE *override)
 				namebuf[x]=0;
 				break;
 			}
-			else if(namebuf[x] > 0x00 && namebuf[x] < 0x20) 
+			else if(namebuf[x] > 0x00 && namebuf[x] < 0x20)
 				namebuf[x]=0x20;
 		}
 
@@ -380,7 +379,7 @@ int FCEUI_AddCheat(const char *name, uint32 addr, uint8 val, int compare, int ty
 	}
 	savecheats=1;
 	RebuildSubCheats();
-	
+
 	return(1);
 }
 
@@ -596,7 +595,7 @@ int FCEUI_DecodePAR(const char *str, int *a, int *v, int *c, int *type)
 /* name can be NULL if the name isn't going to be changed. */
 /* same goes for a, v, and s(except the values of each one must be <0) */
 
-int FCEUI_SetCheat(uint32 which, const char *name, int32 a, int32 v, int compare,int s, int type)
+int FCEUI_SetCheat(uint32 which, const char *name, int32 a, int32 v, int c, int s, int type)
 {
 	struct CHEATF *next=cheats;
 	uint32 x=0;
@@ -608,8 +607,7 @@ int FCEUI_SetCheat(uint32 which, const char *name, int32 a, int32 v, int compare
 			if(name)
 			{
 				char *t;
-
-				if((t=(char *)realloc(next->name,strlen(name)+1)))
+				if((t=(char *)realloc(next->name, strlen(name)+1)))
 				{
 					next->name=t;
 					strcpy(next->name,name);
@@ -623,8 +621,8 @@ int FCEUI_SetCheat(uint32 which, const char *name, int32 a, int32 v, int compare
 				next->val=v;
 			if(s>=0)
 				next->status=s;
-			if(compare>=0)
-				next->compare=compare;
+			if(c>=-1)
+				next->compare=c;
 			next->type=type;
 
 			savecheats=1;
@@ -953,7 +951,7 @@ void UpdateFrozenList(void)
 	//The purpose of this function is to keep an up to date list of addresses that are currently frozen
 	//and make these accessible to other dialogs that deal with memory addresses such as
 	//memwatch, hex editor, ramfilter, etc.
-	
+
 	int x;
 	FrozenAddresses.clear();		//Clear vector and repopulate
 	for(x=0;x<numsubcheats;x++)

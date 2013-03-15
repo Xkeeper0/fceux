@@ -52,7 +52,7 @@
 #include "drivers/win/window.h"
 #include "drivers/win/ntview.h"
 #include "drivers/win/taseditor.h"
-extern bool Taseditor_rewind_now;
+extern bool mustRewindNow;
 #endif // WIN32
 
 //it is easier to declare these input drivers extern here than include a bunch of files
@@ -157,7 +157,7 @@ static DECLFW(B4016)
 		//what's really going on.  But who wants accuracy? ;)
 		//Seriously, though, this shouldn't be a problem.
 		//new comment:
-		
+
 		//mbg 6/7/08 - I guess he means that the input drivers could track the strobing themselves
 		//I dont see why it is unreasonable here.
 		for(int i=0;i<2;i++)
@@ -322,7 +322,7 @@ void FCEU_UpdateInput(void)
 		for(int port=0;port<2;port++)
 			joyports[port].driver->Update(port,joyports[port].ptr,joyports[port].attrib);
 		portFC.driver->Update(portFC.ptr,portFC.attrib);
-	} 
+	}
 
 	if(GameInfo->type==GIT_VSUNI)
 		if(coinon) coinon--;
@@ -331,7 +331,7 @@ void FCEU_UpdateInput(void)
 		NetplayUpdate(joy);
 
 	FCEUMOV_AddInputState();
-	
+
 	//TODO - should this apply to the movie data? should this be displayed in the input hud?
 	if(GameInfo->type==GIT_VSUNI)
 		FCEU_VSUniSwap(&joy[0],&joy[1]);
@@ -404,7 +404,7 @@ static void SetInputStuffFC()
 {
 	switch(portFC.type)
 	{
-	case SIFC_NONE: 
+	case SIFC_NONE:
 		portFC.driver=&DummyPortFC;
 		break;
 	case SIFC_ARKANOID:
@@ -525,7 +525,7 @@ void FCEU_DoSimpleCommand(int cmd)
 	case FCEUNPCMD_FDSINSERT: FCEU_FDSInsert();break;
 	case FCEUNPCMD_FDSSELECT: FCEU_FDSSelect();break;
 	case FCEUNPCMD_VSUNICOIN: FCEU_VSUniCoin(); break;
-	case FCEUNPCMD_VSUNIDIP0: 
+	case FCEUNPCMD_VSUNIDIP0:
 	case FCEUNPCMD_VSUNIDIP0+1:
 	case FCEUNPCMD_VSUNIDIP0+2:
 	case FCEUNPCMD_VSUNIDIP0+3:
@@ -717,7 +717,7 @@ struct EMUCMDTABLE FCEUI_CommandTable[]=
 	{ EMUCMD_LOAD_STATE_SLOT_7,				EMUCMDTYPE_STATE,	CommandStateLoad, 0, 0, "Load State from Slot 7", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_LOAD_STATE_SLOT_8,				EMUCMDTYPE_STATE,	CommandStateLoad, 0, 0, "Load State from Slot 8", EMUCMDFLAG_TASEDITOR },
 	{ EMUCMD_LOAD_STATE_SLOT_9,				EMUCMDTYPE_STATE,	CommandStateLoad, 0, 0, "Load State from Slot 9", EMUCMDFLAG_TASEDITOR },
-	
+
 	{ EMUCMD_MOVIE_RECORD_TO,				EMUCMDTYPE_MOVIE,	FCEUD_MovieRecordTo, 0, 0, "Record Movie To...", 0 },
 	{ EMUCMD_MOVIE_REPLAY_FROM,				EMUCMDTYPE_MOVIE,	FCEUD_MovieReplayFrom, 0, 0, "Play Movie From...", 0 },
 	{ EMUCMD_MOVIE_PLAY_FROM_BEGINNING,		EMUCMDTYPE_MOVIE,	FCEUI_MoviePlayFromBeginning, 0, 0, "Play Movie From Beginning", EMUCMDFLAG_TASEDITOR },
@@ -813,7 +813,7 @@ void FCEUI_HandleEmuCommands(TestCommandState* testfn)
 		bool allow = true;
 		if(taseditor && !(FCEUI_CommandTable[i].flags & EMUCMDFLAG_TASEDITOR))
 			allow = false;
-		
+
 		if(allow)
 		{
 			if (new_state == 1 && old_state == 0 && FCEUI_CommandTable[i].fn_on)
@@ -853,7 +853,7 @@ static void CommandSelectSaveSlot(void)
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 	{
 #ifdef WIN32
-		Taseditor_EMUCMD(execcmd);
+		handleEmuCmdByTaseditor(execcmd);
 #endif
 	} else
 	{
@@ -871,7 +871,7 @@ static void CommandStateSave(void)
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 	{
 #ifdef WIN32
-		Taseditor_EMUCMD(execcmd);
+		handleEmuCmdByTaseditor(execcmd);
 #endif
 	} else
 	{
@@ -892,7 +892,7 @@ static void CommandStateLoad(void)
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 	{
 #ifdef WIN32
-		Taseditor_EMUCMD(execcmd);
+		handleEmuCmdByTaseditor(execcmd);
 #endif
 	} else
 	{
@@ -955,8 +955,8 @@ void LagCounterToggle(void)
 static void LaunchTasEditor(void)
 {
 #ifdef WIN32
-	extern bool EnterTasEditor();
-	EnterTasEditor();
+	extern bool enterTASEditor();
+	enterTASEditor();
 #endif
 }
 
@@ -1131,7 +1131,7 @@ static void ReloadRom(void)
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
 	{
 		// load most recent project
-		Taseditor_EMUCMD(execcmd);
+		handleEmuCmdByTaseditor(execcmd);
 	} else
 	{
 		// load most recent ROM
@@ -1166,12 +1166,12 @@ void ToggleFullscreen()
 #ifdef WIN32
 	extern int SetVideoMode(int fs);		//adelikat: Yeah, I know, hacky
 	extern void UpdateCheckedMenuItems();
-	
+
 	UpdateCheckedMenuItems();
 	changerecursive=1;
 
 	int oldmode = fullscreen;
-	if(!SetVideoMode(oldmode ^1))
+	if(!SetVideoMode(oldmode ^ 1))
 		SetVideoMode(oldmode);
 	changerecursive=0;
 #endif
@@ -1180,13 +1180,13 @@ void ToggleFullscreen()
 static void TaseditorRewindOn(void)
 {
 #ifdef WIN32
-	Taseditor_rewind_now = true;
+	mustRewindNow = true;
 #endif
 }
 static void TaseditorRewindOff(void)
 {
 #ifdef WIN32
-	Taseditor_rewind_now = false;
+	mustRewindNow = false;
 #endif
 }
 
@@ -1194,6 +1194,6 @@ static void TaseditorCommand(void)
 {
 #ifdef WIN32
 	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR))
-		Taseditor_EMUCMD(execcmd);
+		handleEmuCmdByTaseditor(execcmd);
 #endif
 }

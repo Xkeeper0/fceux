@@ -31,12 +31,20 @@
 #include "debugger.h"
 #include "cdlogger.h"
 #include "memviewsp.h"
+#include "debuggersp.h"
 #include "cheat.h"
 #include <assert.h>
 #include "main.h"
 #include "string.h"
 #include "help.h"
 #include "Win32InputBox.h"
+
+extern Name* lastBankNames;
+extern Name* loadedBankNames;
+extern Name* ramBankNames;
+
+extern unsigned char *cdloggervdata;
+extern unsigned int cdloggerVideoDataSize;
 
 using namespace std;
 
@@ -60,7 +68,8 @@ using namespace std;
 
 string memviewhelp = "{06F7BBD5-399E-4CA0-8E4E-75BE0ACC525A}"; //Hex Editor Help Page
 
-int HexRowHeightBorder = 0;	//adelikat:  This will determine the number of pixels between rows in the hex editor, to alter this, the user can change it in the .cfg file, changing one will revert to the way FCEUX2.1.0 did it
+int HexRowHeightBorder = 0;		//adelikat:  This will determine the number of pixels between rows in the hex editor, to alter this, the user can change it in the .cfg file, changing one will revert to the way FCEUX2.1.0 did it
+int HexCharSpacing = 1;		// pixels between chars
 
 // Partial List of Color Definitions
 int HexBackColorR = 255;	// White
@@ -168,6 +177,8 @@ int mousex, mousey;
 int FindAsText;
 int FindDirectionUp;
 char FindTextBox[60];
+
+uint32 temp_offset;
 
 extern iNES_HEADER head;
 
@@ -365,9 +376,10 @@ int LoadTable(const char* nameo)
 }
 
 //should return -1, otherwise returns the line number it had the error on
-int LoadTableFile(){
+int LoadTableFile()
+{
 	const char filter[]="Table Files (*.TBL)\0*.tbl\0All Files (*.*)\0*.*\0\0";
-	char nameo[2048]; //todo: possibly no need for this? can lpstrfilter point to loadedcdfile instead?
+	char nameo[2048];
 	OPENFILENAME ofn;
 	memset(&ofn,0,sizeof(ofn));
 	ofn.lStructSize=sizeof(ofn);
@@ -378,7 +390,7 @@ int LoadTableFile(){
 	ofn.lpstrFile=nameo;
 	ofn.nMaxFile=256;
 	ofn.Flags=OFN_EXPLORER|OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
-	ofn.hwndOwner = hCDLogger;
+	ofn.hwndOwner = hMemView;
 	if(!GetOpenFileName(&ofn))return -1;
 
 	int result = LoadTable(nameo);
@@ -399,14 +411,13 @@ void UnloadTableFile(){
 void UpdateMemoryView(int draw_all)
 {
 	if (!hMemView) return;
-	int MemFontWidth = debugSystem->fixedFontWidth;
-	int MemFontHeight = debugSystem->fixedFontHeight + HexRowHeightBorder;
+	int MemFontWidth = debugSystem->HexeditorFontWidth + HexCharSpacing;
+	int MemFontHeight = debugSystem->HexeditorFontHeight + HexRowHeightBorder;
 
 	int i, j;
 	//LPVOID lpMsgBuf;
 	//int curlength;
 	char str[100];
-	char str2[100];
 	
 	/*
 	if(draw_all){
@@ -428,42 +439,57 @@ void UpdateMemoryView(int draw_all)
 	TextOut(HDataDC,0,0,str,strlen(str));
 	}
 	} else {*/
-	for(i = CurOffset;i < CurOffset+DataAmount;i+=16){
-		if((OldCurOffset != CurOffset) || draw_all){
+	for(i = CurOffset;i < CurOffset+DataAmount;i+=16)
+	{
+		if((OldCurOffset != CurOffset) || draw_all)
+		{
 			MoveToEx(HDataDC,0,MemFontHeight*((i-CurOffset)/16),NULL);
 			SetTextColor(HDataDC,RGB(HexForeColorR,HexForeColorG,HexForeColorB));	//addresses text color			000 = black, 255255255 = white
 			SetBkColor(HDataDC,RGB(HexBackColorR,HexBackColorG,HexBackColorB));		//addresses back color
 			sprintf(str,"%06X: ",i);
 			TextOut(HDataDC,0,0,str,strlen(str));
 		}
-		for(j = 0;j < 16;j++){
-			if((CursorEndAddy == -1) && (CursorStartAddy == i+j)){ //print up single highlighted text
-				sprintf(str,"%02X",GetMemViewData(CursorStartAddy));
+		for(j = 0;j < 16;j++)
+		{
+			if((CursorEndAddy == -1) && (CursorStartAddy == i+j))
+			{
+				//print up single highlighted text
 				OldValues[i+j-CurOffset] = -1; //set it to redraw this one next time
-				MoveToEx(HDataDC,8*MemFontWidth+(j*3*MemFontWidth),MemFontHeight*((i-CurOffset)/16),NULL);
-				if(TempData != -1){
-					// Typing New Data
-					sprintf(str2,"%X",TempData);
+				MoveToEx(HDataDC, 8 * MemFontWidth + (j * 3 * MemFontWidth), MemFontHeight * ((i - CurOffset) / 16), NULL);
+				if(TempData != -1)
+				{
+					// User is typing New Data
+					// 1st nybble
+					sprintf(str,"%X",TempData);
 					SetBkColor(HDataDC,RGB(255,255,255));
 					SetTextColor(HDataDC,RGB(255,0,0));
-					TextOut(HDataDC,0,0,str2,1);
+					TextOut(HDataDC,0,0,str,1);
+					// 2nd nybble
+					MoveToEx(HDataDC, MemFontWidth + 8 * MemFontWidth + (j * 3 * MemFontWidth), MemFontHeight * ((i - CurOffset) / 16), NULL);
+					sprintf(str,"%X",GetMemViewData(CursorStartAddy) % 16);
 					SetTextColor(HDataDC,RGB(HexBackColorR,HexBackColorG,HexBackColorB));
 					SetBkColor(HDataDC,RGB(HexForeColorR,HexForeColorG,HexForeColorB));
-					TextOut(HDataDC,0,0,&str[1],1);
-				} else {
+					TextOut(HDataDC, 0, 0, str, 1);
+				} else
+				{
 					// Selecting a Single Byte
+					sprintf(str,"%X",(int)(GetMemViewData(CursorStartAddy) / 16));
 					SetTextColor(HDataDC,RGB(255,255,255));		//single address highlight
 					SetBkColor(HDataDC,RGB(0,0,0));
 					TextOut(HDataDC,0,0,str,1);
+					// 2nd nybble
+					MoveToEx(HDataDC, MemFontWidth + 8 * MemFontWidth + (j * 3 * MemFontWidth), MemFontHeight * ((i - CurOffset) / 16), NULL);
+					sprintf(str,"%X",GetMemViewData(CursorStartAddy) % 16);
 					SetTextColor(HDataDC,TextColorList[i+j-CurOffset]);	//single address highlight 2nd address
 					SetBkColor(HDataDC,RGB(HexBackColorR,HexBackColorG,HexBackColorB));
-					TextOut(HDataDC,0,0,&str[1],1);
+					TextOut(HDataDC,0,0,str,1);
 				}
-				TextOut(HDataDC,0,0," ",1);
+				//TextOut(HDataDC,0,0," ",1);
 
-				SetTextColor(HDataDC,RGB(255,255,255));			//single addres highlight - right column
+				//single addres highlight - right column
+				SetTextColor(HDataDC,RGB(255,255,255));
 				SetBkColor(HDataDC,RGB(0,0,0));
-				MoveToEx(HDataDC,(59+j)*MemFontWidth,MemFontHeight*((i-CurOffset)/16),NULL); //todo: try moving this above the for loop
+				MoveToEx(HDataDC, (59 + j) * MemFontWidth, MemFontHeight * ((i - CurOffset) / 16), NULL); //todo: try moving this above the for loop
 				str[0] = chartable[GetMemViewData(i+j)];
 				if(str[0] < 0x20)str[0] = 0x2E;
 				if(str[0] > 0x7e)str[0] = 0x2E;
@@ -472,12 +498,16 @@ void UpdateMemoryView(int draw_all)
 
 				continue;
 			}
-			if((OldValues[i+j-CurOffset] != GetMemViewData(i+j)) || draw_all){
-				MoveToEx(HDataDC,8*MemFontWidth+(j*3*MemFontWidth),MemFontHeight*((i-CurOffset)/16),NULL);
+			if((OldValues[i+j-CurOffset] != GetMemViewData(i+j)) || draw_all)
+			{
+				MoveToEx(HDataDC, 8 * MemFontWidth + (j * 3 * MemFontWidth), MemFontHeight * ((i - CurOffset) / 16),NULL);
 				SetTextColor(HDataDC,TextColorList[i+j-CurOffset]);//(8+j*3)*MemFontWidth
 				SetBkColor(HDataDC,BGColorList[i+j-CurOffset]);
-				sprintf(str,"%02X ",GetMemViewData(i+j));
-				TextOut(HDataDC,0,0,str,strlen(str));
+				sprintf(str,"%X", (int)(GetMemViewData(i+j) / 16));
+				TextOut(HDataDC, 0, 0, str, 1);
+				MoveToEx(HDataDC, MemFontWidth + 8 * MemFontWidth + (j * 3 * MemFontWidth), MemFontHeight * ((i - CurOffset) / 16),NULL);
+				sprintf(str,"%X", GetMemViewData(i+j) % 16);
+				TextOut(HDataDC, 0, 0, str, 1);
 
 				MoveToEx(HDataDC,(59+j)*MemFontWidth,MemFontHeight*((i-CurOffset)/16),NULL); //todo: try moving this above the for loop
 				str[0] = chartable[GetMemViewData(i+j)];
@@ -488,7 +518,8 @@ void UpdateMemoryView(int draw_all)
 				if(CursorStartAddy != i+j)OldValues[i+j-CurOffset] = GetMemViewData(i+j);
 			}
 		}
-		if(draw_all){
+		if(draw_all)
+		{
 			MoveToEx(HDataDC,56*MemFontWidth,MemFontHeight*((i-CurOffset)/16),NULL);
 			SetTextColor(HDataDC,RGB(HexForeColorR,HexForeColorG,HexForeColorB));	//Column separator
 			SetBkColor(HDataDC,RGB(HexBackColorR,HexBackColorG,HexBackColorB));
@@ -518,16 +549,64 @@ void UpdateMemoryView(int draw_all)
 	return;
 }
 
+char EditString[3][20] = {"RAM","PPU","ROM"};
+
 void UpdateCaption()
 {
-	char str[100];
-	char EditString[3][20] = {"RAM","PPU Memory","ROM"};
+	static char str[1000];
+	static char addrName[500];
+	static char addrNameCopy[500];
 
-	if(CursorEndAddy == -1){
-		sprintf(str,"Hex Editor - Editing %s Offset 0x%06x",EditString[EditingMode],CursorStartAddy);
-	} else {
-		sprintf(str,"Hex Editor - Editing %s Offset 0x%06x - 0x%06x, 0x%x bytes selected ",
-			EditString[EditingMode],CursorStartAddy,CursorEndAddy,CursorEndAddy-CursorStartAddy+1);
+	if (CursorEndAddy == -1)
+	{
+		if (EditingMode == 2)
+		{
+			if (CursorStartAddy < 16)
+				sprintf(str, "Hex Editor - ROM Header Offset 0x%06x", CursorStartAddy);
+			else if (CursorStartAddy - 16 < (int)PRGsize[0])
+				sprintf(str, "Hex Editor - (PRG) ROM Offset 0x%06x", CursorStartAddy);
+			else if (CursorStartAddy - 16 - PRGsize[0] < (int)CHRsize[0])
+				sprintf(str, "Hex Editor - (CHR) ROM Offset 0x%06x", CursorStartAddy);
+		} else
+		{
+			sprintf(str, "Hex Editor - %s Offset 0x%06x", EditString[EditingMode], CursorStartAddy);
+		}
+
+		if (EditingMode == 0 && symbDebugEnabled)
+		{
+			// when watching RAM we may as well see symbolic names
+			sprintf(addrName, "$%04X", CursorStartAddy);
+			strcpy(addrNameCopy, addrName);
+			// try to find the name for this address in loadedBankNames
+			replaceNames(ramBankNames, addrName);
+			if (strcmp(addrName, addrNameCopy))
+			{
+				strcat(str, " - ");
+				strcat(str, addrName);
+			} else
+			{
+				// name was not found in ramBankNames, try loadedBankNames
+				replaceNames(loadedBankNames, addrName);
+				if (strcmp(addrName, addrNameCopy))
+				{
+					strcat(str, " - ");
+					strcat(str, addrName);
+				} else
+				{
+					// name was not found in ramBankNames, try loadedBankNames
+					replaceNames(lastBankNames, addrName);
+					if (strcmp(addrName, addrNameCopy))
+					{
+						strcat(str, " - ");
+						strcat(str, addrName);
+					}
+				}
+			}
+		}
+	} else
+	{
+		sprintf(str, "Hex Editor - %s Offset 0x%06x - 0x%06x, 0x%x bytes selected ",
+			EditString[EditingMode], CursorStartAddy, CursorEndAddy, CursorEndAddy - CursorStartAddy + 1);
 	}
 	SetWindowText(hMemView,str);
 	return;
@@ -581,21 +660,67 @@ void UpdateColorTable(){
 	// ################################## End of SP CODE ###########################
 
 	//mbg merge 6/29/06 - added argument
-	if(EditingMode == 0)FCEUI_ListCheats(UpdateCheatColorCallB,0);
+	if (EditingMode == 0)
+		FCEUI_ListCheats(UpdateCheatColorCallB, 0);
 
-	if(EditingMode == 2){
-		if(cdloggerdata) {
-			for(i = 0;i < DataAmount;i++){
-				if(((uint32)CurOffset+i >= 16) && ((uint32)CurOffset+i < 16+PRGsize[0])) {
-					if((cdloggerdata[i+CurOffset-16]&3) == 3)TextColorList[i]=RGB(0,192,0);
-					if((cdloggerdata[i+CurOffset-16]&3) == 1)TextColorList[i]=RGB(192,192,0);
-					if((cdloggerdata[i+CurOffset-16]&3) == 2)TextColorList[i]=RGB(0,0,192);
+	if(EditingMode == 2)
+	{
+		if (cdloggerdataSize)
+		{
+			for (i = 0; i < DataAmount; i++)
+			{
+				temp_offset = CurOffset + i - 16;	// (minus iNES header)
+				if (temp_offset >= 0)
+				{
+					if (temp_offset < cdloggerdataSize)
+					{
+						// PRG
+						if ((cdloggerdata[temp_offset] & 3) == 3)
+						{
+							// the byte is both Code and Data - green
+							TextColorList[i]=RGB(0,190,0);
+						} else if((cdloggerdata[temp_offset] & 3) == 1)
+						{
+							// the byte is Code - dark-yellow
+							TextColorList[i]=RGB(160,140,0);
+						} else if((cdloggerdata[temp_offset] & 3) == 2)
+						{
+							// the byte is Data - blue/cyan
+							if (cdloggerdata[temp_offset] & 0x40)
+								// PCM data - cyan
+								TextColorList[i]=RGB(0,130,160);
+							else
+								// non-PCM data - blue
+								TextColorList[i]=RGB(0,0,210);
+						}
+					} else
+					{
+						temp_offset -= cdloggerdataSize;
+						if ((temp_offset < cdloggerVideoDataSize))
+						{
+							// CHR
+							if ((cdloggervdata[temp_offset] & 3) == 3)
+							{
+								// the byte was both rendered and read programmatically - light-green
+								TextColorList[i]=RGB(5,255,5);
+							} else if ((cdloggervdata[temp_offset] & 3) == 1)
+							{
+								// the byte was rendered - yellow
+								TextColorList[i]=RGB(210,190,0);
+							} else if ((cdloggervdata[temp_offset] & 3) == 2)
+							{
+								// the byte was read programmatically - light-blue
+								TextColorList[i]=RGB(15,15,255);
+							}
+						}
+					}
 				}
 			}
 		}
 
-		tmp=undo_list;
-		while(tmp!= 0){
+		tmp = undo_list;
+		while(tmp!= 0)
+		{
 			//if((tmp->addr < CurOffset+DataAmount) && (tmp->addr+tmp->size > CurOffset))
 			for(i = tmp->addr;i < tmp->addr+tmp->size;i++){
 				if((i > CurOffset) && (i < CurOffset+DataAmount))
@@ -775,8 +900,13 @@ void InputData(char *input){
 	for(i = 0;i < datasize;i++){
 		addr = CursorStartAddy+i;
 
-		if(EditingMode == 0)BWrite[addr](addr,data[i]);
-		if(EditingMode == 1){
+		if (EditingMode == 0)
+		{
+			// RAM (system bus)
+			BWrite[addr](addr,data[i]);
+		} else if (EditingMode == 1)
+		{
+			// PPU
 			addr &= 0x3FFF;
 			if(addr < 0x2000)
 				VPage[addr>>10][addr] = data[i]; //todo: detect if this is vrom and turn it red if so
@@ -784,8 +914,9 @@ void InputData(char *input){
 				vnapage[(addr>>10)&0x3][addr&0x3FF] = data[i]; //todo: this causes 0x3000-0x3f00 to mirror 0x2000-0x2f00, is this correct?
 			if((addr >= 0x3F00) && (addr < 0x3FFF))
 				PALRAM[addr&0x1F] = data[i];
-		}
-		if(EditingMode == 2){
+		} else if (EditingMode == 2)
+		{
+			// ROM
 			ApplyPatch(addr,datasize,data);
 			break;
 		}
@@ -879,12 +1010,14 @@ void ChangeMemViewFocus(int newEditingMode, int StartOffset,int EndOffset){
 }
 
 
-int GetHexScreenCoordx(int offset){
-	return (8*debugSystem->fixedFontWidth)+((offset%16)*3*debugSystem->fixedFontWidth); //todo: add Curoffset to this and to below function
+int GetHexScreenCoordx(int offset)
+{
+	return (8 * (debugSystem->HexeditorFontWidth + HexCharSpacing)) + ((offset % 16) * 3 * (debugSystem->HexeditorFontWidth + HexCharSpacing)); //todo: add Curoffset to this and to below function
 }
 
-int GetHexScreenCoordy(int offset){
-	return (offset/16)*(debugSystem->fixedFontHeight+HexRowHeightBorder);
+int GetHexScreenCoordy(int offset)
+{
+	return (offset / 16) * (debugSystem->HexeditorFontHeight + HexRowHeightBorder);
 }
 
 //0000E0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  : ................
@@ -893,8 +1026,8 @@ int GetHexScreenCoordy(int offset){
 //if the mouse wasn't in any range, this function returns -1
 int GetAddyFromCoord(int x,int y)
 {
-	int MemFontWidth = debugSystem->fixedFontWidth;
-	int MemFontHeight = debugSystem->fixedFontHeight + HexRowHeightBorder;
+	int MemFontWidth = debugSystem->HexeditorFontWidth + HexCharSpacing;
+	int MemFontHeight = debugSystem->HexeditorFontHeight + HexRowHeightBorder;
 
 	if(y < 0)y = 0;
 	if(x < 8*MemFontWidth)x = 8*MemFontWidth+1;
@@ -967,8 +1100,8 @@ LRESULT CALLBACK MemViewCallB(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPa
 	SCROLLINFO si;
 	int x, y, i, j;
 	int tempAddy;
-	const int MemFontWidth = debugSystem->fixedFontWidth;
-	const int MemFontHeight = debugSystem->fixedFontHeight + HexRowHeightBorder;
+	const int MemFontWidth = debugSystem->HexeditorFontWidth;
+	const int MemFontHeight = debugSystem->HexeditorFontHeight + HexRowHeightBorder;
 
 	char c[2];
 	char str[100];
@@ -996,7 +1129,7 @@ LRESULT CALLBACK MemViewCallB(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPa
 		// ################################## End of SP CODE ###########################
 		mDC = GetDC(hwnd);
 		HDataDC = mDC;//deleteme
-		SelectObject (HDataDC, debugSystem->hFixedFont);
+		SelectObject (HDataDC, debugSystem->hHexeditorFont);
 		SetTextAlign(HDataDC,TA_UPDATECP | TA_TOP | TA_LEFT);
 
 		GetTextMetrics (HDataDC, &tm);
@@ -1126,6 +1259,8 @@ LRESULT CALLBACK MemViewCallB(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPa
 		// Fall through to Ctrl+G
 	case 0x47: //Ctrl+G
 		GotoAddress(hwnd); break;
+	case 0x46: //Ctrl+F
+		OpenFindDialog(); break;
 			}
 		}
 
@@ -1494,7 +1629,7 @@ LRESULT CALLBACK MemViewCallB(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPa
 		case MENU_MV_FILE_LOAD_TBL:
 			if((i = LoadTableFile()) != -1){
 				sprintf(str,"Error Loading Table File At Line %d",i);
-				MessageBox(hMemView,str,"error", MB_OK);
+				MessageBox(hMemView, str, "error", MB_OK);
 			}
 			UpdateColorTable();
 			return 0;
@@ -1622,6 +1757,7 @@ LRESULT CALLBACK MemViewCallB(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPa
 			for(i = 0;i < DataAmount;i++)OldValues[i] = -1;
 
 			UpdateColorTable();
+			UpdateCaption();
 			return 0;
 
 			// ################################## Start of SP CODE ###########################
@@ -1905,8 +2041,14 @@ void FindNext(){
 }
 
 
-void OpenFindDialog() {
-	if((!hMemView) || (hMemFind))return;
-	hMemFind = CreateDialog(fceu_hInstance,"MEMVIEWFIND",hMemView,MemFindCallB);
+void OpenFindDialog()
+{
+	if (!hMemView)
+		return;
+	if (hMemFind)
+		// set focus to the text field
+		SendMessage(hMemFind, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(hMemFind, IDC_MEMVIEWFIND_WHAT), true);
+	else
+		hMemFind = CreateDialog(fceu_hInstance,"MEMVIEWFIND",hMemView,MemFindCallB);
 	return;
 }

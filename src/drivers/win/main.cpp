@@ -73,7 +73,8 @@
 #include "taseditor.h"
 #include "taseditor/taseditor_window.h"
 
-extern TASEDITOR_WINDOW taseditor_window;
+extern TASEDITOR_WINDOW taseditorWindow;
+extern bool taseditorEnableAcceleratorKeys;
 
 //---------------------------
 //mbg merge 6/29/06 - new aboutbox
@@ -111,7 +112,7 @@ extern bool turbo;				//Is game in turbo mode?
 void ResetVideo(void);
 void ShowCursorAbs(int w);
 void HideFWindow(int h);
-void FixWXY(int pref);
+void FixWXY(int pref, bool shift_held);
 void SetMainWindowStuff(void);
 int GetClientAbsRect(LPRECT lpRect);
 void UpdateFCEUWindow(void);
@@ -121,7 +122,7 @@ void ApplyDefaultCommandMapping(void);
 // Internal variables
 int frameSkipAmt = 18;
 uint8 *xbsave = NULL;
-int eoptions = EO_BGRUN | EO_NOSPRLIM | EO_FORCEISCALE | EO_BESTFIT | EO_BGCOLOR;
+int eoptions = EO_BGRUN | EO_FORCEISCALE | EO_BESTFIT | EO_BGCOLOR;
 
 //global variables
 int soundoptions = SO_SECONDARY | SO_GFOCUS;
@@ -140,10 +141,11 @@ int soundPCMvol = 256;			//Sound channel PCM - volume control
 
 int KillFCEUXonFrame = 0; //TODO: clean up, this is used in fceux, move it over there?
 
-double saspectw = 1, saspecth = 1;
-double winsizemulx = 1, winsizemuly = 1;
+double saspectw = 1.0, saspecth = 1.0;
+double winsizemulx = 1.0, winsizemuly = 1.0;
 int genie = 0;
 int pal_emulation = 0;
+int pal_setting_specified = 0;
 int ntsccol = 0, ntsctint, ntschue;
 std::string BaseDirectory;
 int PauseAfterLoad;
@@ -172,7 +174,7 @@ static char TempArray[2048];
 static int exiting = 0;
 static volatile int moocow = 0;
 
-int windowedfailed;
+int windowedfailed = 0;
 int fullscreen = 0;	//Windows files only, variable that keeps track of fullscreen status
 
 static volatile int _userpause = 0; //mbg merge 7/18/06 changed tasbuild was using this only in a couple of places
@@ -317,18 +319,23 @@ int BlockingCheck()
 			if(hCheat)
 				if(IsChild(hCheat, msg.hwnd))
 					handled = IsDialogMessage(hCheat, &msg);
-			if(hwndMemWatch)
+			if(!handled && hMemFind)
+			{
+				if(IsChild(hMemFind, msg.hwnd))
+					handled = IsDialogMessage(hMemFind, &msg);
+			}
+			if(!handled && hwndMemWatch)
 			{
 				if(IsChild(hwndMemWatch,msg.hwnd))
 					handled = TranslateAccelerator(hwndMemWatch,fceu_hAccel,&msg);
 				if(!handled)
 					handled = IsDialogMessage(hwndMemWatch,&msg);
 			}
-			if(RamSearchHWnd)
+			if(!handled && RamSearchHWnd)
 			{
-				handled |= IsDialogMessage(RamSearchHWnd, &msg);
+				handled = IsDialogMessage(RamSearchHWnd, &msg);
 			}
-			if(RamWatchHWnd)
+			if(!handled && RamWatchHWnd)
 			{
 				if(IsDialogMessage(RamWatchHWnd, &msg))
 				{
@@ -338,15 +345,15 @@ int BlockingCheck()
 				}
 			}
 
-			if(!handled && taseditor_window.hwndTasEditor)
+			if(!handled && taseditorWindow.hwndTASEditor && taseditorEnableAcceleratorKeys)
 			{
-				if(IsChild(taseditor_window.hwndTasEditor, msg.hwnd))
-					handled = TranslateAccelerator(taseditor_window.hwndTasEditor, fceu_hAccel, &msg);
+				if(IsChild(taseditorWindow.hwndTASEditor, msg.hwnd))
+					handled = TranslateAccelerator(taseditorWindow.hwndTASEditor, fceu_hAccel, &msg);
 			}
-			if(!handled && taseditor_window.hwndFindNote)
+			if(!handled && taseditorWindow.hwndFindNote)
 			{
-				if(IsChild(taseditor_window.hwndFindNote, msg.hwnd))
-					handled = IsDialogMessage(taseditor_window.hwndFindNote, &msg);
+				if(IsChild(taseditorWindow.hwndFindNote, msg.hwnd))
+					handled = IsDialogMessage(taseditorWindow.hwndFindNote, &msg);
 			}
 			/* //adelikat - Currently no accel keys are used in the main window.  Uncomment this block to activate them.
 			if(!handled)
@@ -411,11 +418,10 @@ void DoFCEUExit()
 	if(exiting)    //Eh, oops.  I'll need to try to fix this later.
 		return;
 
-#ifdef WIN32
-	//If user was asked to save changes in TAS Editor and chose cancel, don't close FCEUX
-	extern bool ExitTasEditor();
-	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR) && !ExitTasEditor()) return;
-#endif
+	// If user was asked to save changes in TAS Editor and chose cancel, don't close FCEUX
+	extern bool exitTASEditor();
+	if (FCEUMOV_Mode(MOVIEMODE_TASEDITOR) && !exitTASEditor())
+		return;
 
 	if (CloseMemoryWatch() && AskSave())		//If user was asked to save changes in the memory watch dialog or ram watch, and chose cancel, don't close FCEUX!
 	{
@@ -442,12 +448,18 @@ void DoFCEUExit()
 
 		FCEUI_StopMovie();
 		FCEUD_AviStop();
-		#ifdef _S9XLUA_H
+#ifdef _S9XLUA_H
 		FCEU_LuaStop(); // kill lua script before the gui dies
-		#endif
+#endif
 
 		exiting = 1;
 		closeGame = true;//mbg 6/30/06 - for housekeeping purposes we need to exit after the emulation cycle finishes
+		// remember the ROM name
+		extern char LoadedRomFName[2048];
+		if (GameInfo)
+			strcpy(romNameWhenClosingEmulator, LoadedRomFName);
+		else
+			romNameWhenClosingEmulator[0] = 0;
 	}
 }
 
@@ -478,10 +490,6 @@ int DriverInitialize()
 {
 	if(soundo)
 		soundo = InitSound();
-
-	// AnS: forcing the resolution of fullscreen to be the same as current display resolution
-	vmod = 0;
-	vmodes[0].y = 0;
 
 	SetVideoMode(fullscreen);
 	InitInputStuff();             /* Initialize DInput interfaces. */
@@ -635,22 +643,27 @@ int main(int argc,char *argv[])
 	// Get the base directory
 	GetBaseDirectory();
 
+	// load fceux.cfg
+	sprintf(TempArray,"%s\\%s",BaseDirectory.c_str(),cfgFile.c_str());
+	LoadConfig(TempArray);
+	//initDirectories();
+
 	// Parse the commandline arguments
 	t = ParseArgies(argc, argv);
 
-	if (ConfigToLoad) cfgFile.assign(ConfigToLoad);
+	int saved_pal_setting = !!pal_emulation;
 
-	//initDirectories();
-
-	// Load the config information
-	sprintf(TempArray,"%s\\%s",BaseDirectory.c_str(),cfgFile.c_str());
-	LoadConfig(TempArray);
+	if (ConfigToLoad)
+	{
+		// alternative config file specified
+		cfgFile.assign(ConfigToLoad);
+		// Load the config information
+		sprintf(TempArray,"%s\\%s",BaseDirectory.c_str(),cfgFile.c_str());
+		LoadConfig(TempArray);
+	}
 
 	//Bleh, need to find a better place for this.
 	{
-        pal_emulation = !!pal_emulation;
-        FCEUI_SetVidSystem(pal_emulation);
-
         FCEUI_SetGameGenie(genie!=0);
 
         fullscreen = !!fullscreen;
@@ -737,13 +750,22 @@ int main(int argc,char *argv[])
 
 	InitSpeedThrottle();
 
-	if(t)
+	if (t)
 	{
 		ALoad(t);
-	}
-	else if(eoptions & EO_FOAFTERSTART)
+	} else
 	{
-		LoadNewGamey(hAppWnd, 0);
+		if (AutoResumePlay && romNameWhenClosingEmulator && romNameWhenClosingEmulator[0])
+			ALoad(romNameWhenClosingEmulator, 0, true);
+		if (eoptions & EO_FOAFTERSTART)
+			LoadNewGamey(hAppWnd, 0);
+	}
+
+	if (pal_setting_specified)
+	{
+		// Force the PAL setting specified in the command line
+        pal_emulation = saved_pal_setting;
+        FCEUI_SetVidSystem(pal_emulation);
 	}
 
 	if(PaletteToLoad)
@@ -828,7 +850,7 @@ doloopy:
 			FCEUD_Update(gfx, sound, ssize); //update displays and debug tools
 
 			//mbg 6/30/06 - close game if we were commanded to by calls nested in FCEUI_Emulate()
-			if(closeGame)
+			if (closeGame)
 			{
 				FCEUI_CloseGame();
 				GameInfo = NULL;
@@ -881,13 +903,13 @@ void win_debuggerLoop()
 		_updateWindow();
 		// HACK: break when Frame Advance is pressed
 		extern bool frameAdvanceRequested;
-		extern int frameAdvanceDelay;
+		extern int frameAdvance_Delay_count, frameAdvance_Delay;
 		if (frameAdvanceRequested)
 		{
-			if (frameAdvanceDelay==0 || frameAdvanceDelay >= 10)
-				FCEUI_SetEmulationPaused(2);
-			if (frameAdvanceDelay < 10)
-				frameAdvanceDelay++;
+			if (frameAdvance_Delay_count == 0 || frameAdvance_Delay_count >= frameAdvance_Delay)
+				FCEUI_SetEmulationPaused(EMULATIONPAUSED_FA);
+			if (frameAdvance_Delay_count < frameAdvance_Delay)
+				frameAdvance_Delay_count++;
 		}
 	}
 	int zzz=9;
@@ -910,7 +932,7 @@ void FCEUD_Update(uint8 *XBuf, int32 *Buffer, int Count)
 	//update debugging displays
 	_updateWindow();
 	// update TAS Editor
-	UpdateTasEditor();
+	updateTASEditor();
 
 	extern bool JustFrameAdvanced;
 
@@ -1048,6 +1070,28 @@ char *GetRomName()
 		char drv[PATH_MAX], dir[PATH_MAX], name[PATH_MAX], ext[PATH_MAX];
 		splitpath(LoadedRomFName,drv,dir,name,ext);	//Extract components of the ROM path
 		Rom = name;						//Pull out the Name only
+		}
+	else
+		Rom = "";
+	char*mystring = (char*)malloc(2048*sizeof(char));
+	strcpy(mystring, Rom.c_str());		//Convert string to char*
+
+	return mystring;
+}
+
+char *GetRomPath()
+{
+	//The purpose of this function is to format the ROM name stored in LoadedRomFName
+	//And return a char array with just the name with path or extension
+	//The purpose of this function is to populate a save as dialog with the ROM name as a default filename
+	extern char LoadedRomFName[2048];	//Contains full path of ROM
+	std::string Rom;					//Will contain the formatted path
+	if(GameInfo)						//If ROM is loaded
+		{
+		char drv[PATH_MAX], dir[PATH_MAX], name[PATH_MAX], ext[PATH_MAX];
+		splitpath(LoadedRomFName,drv,dir,name,ext);	//Extract components of the ROM path
+		Rom = drv;						//Pull out the Path only
+		Rom.append(dir);
 		}
 	else
 		Rom = "";
