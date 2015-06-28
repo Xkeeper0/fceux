@@ -57,7 +57,7 @@ extern TASEDITOR_LUA taseditor_lua;
 bool CheckLua()
 {
 #ifdef WIN32
-	HMODULE mod = LoadLibrary("lua51.dll");
+	HMODULE mod = LoadLibrary("lua53.dll");
 	if(!mod)
 	{
 		return false;
@@ -74,7 +74,7 @@ bool DemandLua()
 #ifdef WIN32
 	if(!CheckLua())
 	{
-		MessageBox(NULL, "lua51.dll was not found. Please get it into your PATH or in the same directory as fceux.exe", "FCEUX", MB_OK | MB_ICONERROR);
+		MessageBox(NULL, "lua53.dll was not found. Please get it into your PATH or in the same directory as fceux.exe", "FCEUX", MB_OK | MB_ICONERROR);
 		return false;
 	}
 	return true;
