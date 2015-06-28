@@ -3399,8 +3399,8 @@ static int gui_pixel(lua_State *L) {
 // Gets the LUA set pixel color
 static int gui_getpixel(lua_State *L) {
 
-	int x = luaL_checkinteger(L, 1);
-	int y = luaL_checkinteger(L,2);
+	int x = (int)luaL_checknumber(L, 1);
+	int y = (int)luaL_checknumber(L, 2);
 
 	int r, g, b, a;
 
@@ -3437,8 +3437,8 @@ static int gui_getpixel(lua_State *L) {
 // Palette will be 254 on error
 static int emu_getscreenpixel(lua_State *L) {
 
-	int x = luaL_checkinteger(L, 1);
-	int y = luaL_checkinteger(L,2);
+	int x = (int)luaL_checknumber(L, 1);
+	int y = (int)luaL_checknumber(L, 2);
 	bool getemuscreen = (lua_toboolean(L,3) == 1);
 
 	int r, g, b;
@@ -3480,10 +3480,10 @@ static int gui_line(lua_State *L) {
 
 	int x1,y1,x2,y2;
 	uint32 color;
-	x1 = luaL_checkinteger(L,1);
-	y1 = luaL_checkinteger(L,2);
-	x2 = luaL_checkinteger(L,3);
-	y2 = luaL_checkinteger(L,4);
+	x1 = (int)luaL_checknumber(L,1);
+	y1 = (int)luaL_checknumber(L,2);
+	x2 = (int)luaL_checknumber(L,3);
+	y2 = (int)luaL_checknumber(L,4);
 	color = gui_optcolour(L,5,LUA_BUILD_PIXEL(255, 255, 255, 255));
 	int skipFirst = lua_toboolean(L,6);
 
@@ -3501,10 +3501,10 @@ static int gui_box(lua_State *L) {
 	uint32 fillcolor;
 	uint32 outlinecolor;
 
-	x1 = luaL_checkinteger(L,1);
-	y1 = luaL_checkinteger(L,2);
-	x2 = luaL_checkinteger(L,3);
-	y2 = luaL_checkinteger(L,4);
+	x1 = (int)luaL_checknumber(L,1);
+	y1 = (int)luaL_checknumber(L,2);
+	x2 = (int)luaL_checknumber(L,3);
+	y2 = (int)luaL_checknumber(L,4);
 	fillcolor = gui_optcolour(L,5,LUA_BUILD_PIXEL(63, 255, 255, 255));
 	outlinecolor = gui_optcolour(L,6,LUA_BUILD_PIXEL(255, LUA_PIXEL_R(fillcolor), LUA_PIXEL_G(fillcolor), LUA_PIXEL_B(fillcolor)));
 
@@ -3528,10 +3528,10 @@ static int gui_box_old(lua_State *L) {
 	int x1,y1,x2,y2;
 	uint32 colour;
 
-	x1 = luaL_checkinteger(L,1);
-	y1 = luaL_checkinteger(L,2);
-	x2 = luaL_checkinteger(L,3);
-	y2 = luaL_checkinteger(L,4);
+	x1 = (int)luaL_checknumber(L,1);
+	y1 = (int)luaL_checknumber(L,2);
+	x2 = (int)luaL_checknumber(L,3);
+	y2 = (int)luaL_checknumber(L,4);
 	colour = gui_getcolour(L,5);
 
 //	if (!gui_check_boundary(x1, y1))
