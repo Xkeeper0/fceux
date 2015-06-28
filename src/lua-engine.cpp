@@ -10,6 +10,8 @@
 #define SetCurrentDir _chdir
 #endif
 
+#define LUA_NUMBER_DOUBLE //hack for bitop lib
+
 #include "types.h"
 #include "fceu.h"
 #include "video.h"
@@ -260,6 +262,25 @@ CTASSERT(sizeof(luaMemHookTypeStrings)/sizeof(*luaMemHookTypeStrings) ==  LUAMEM
 
 static char* rawToCString(lua_State* L, int idx=0);
 static const char* toCString(lua_State* L, int idx=0);
+
+
+//hack for Lua 5.3 compatibility
+int luaL_typerror(lua_State *L, int narg, const char *tname)
+{
+	const char *aname = luaL_typename(L, narg);
+
+	luaL_where(L, 0);
+	const char *where = lua_tostring(L, -1);
+
+	lua_Debug ar;
+	lua_getstack(L, 0, &ar);
+	lua_getinfo(L, "n", &ar);
+	const char *func = ar.name ? ar.name : "<unknown>";
+
+	return luaL_error(L, "%s: bad argument #%d to '%s' (%s expected, got %s)",
+		where, narg, func, tname, aname);
+}
+
 
 /**
  * Resets emulator speed / pause states after script exit.
@@ -1358,7 +1379,14 @@ static void toCStringConverter(lua_State* L, int i, char*& ptr, int& remaining)
 		case LUA_TNIL: APPENDPRINT "nil" END break;
 		case LUA_TBOOLEAN: APPENDPRINT lua_toboolean(L,i) ? "true" : "false" END break;
 		case LUA_TSTRING: APPENDPRINT "%s",lua_tostring(L,i) END break;
-		case LUA_TNUMBER: APPENDPRINT "%.12Lg",lua_tonumber(L,i) END break;
+		case LUA_TNUMBER:
+			if(lua_isinteger(L,i)) {
+				APPENDPRINT "%d",lua_tointeger(L,i) END
+			}
+			else {
+				APPENDPRINT "%.12Lg",lua_tonumber(L,i) END
+			}
+		break;
 		case LUA_TFUNCTION:
 			/*if((L->base + i-1)->value.gc->cl.c.isC)
 			{
@@ -1506,11 +1534,13 @@ static char* rawToCString(lua_State* L, int idx)
 			remaining++, ptr--;
 		APPENDPRINT "..." END
 	}
-	APPENDPRINT "\r\n" END
+	//APPENDPRINT "\r\n" END
 	// the trailing newline is so print() can avoid having to do wasteful things to print its newline
 	// (string copying would be wasteful and calling info.print() twice can be extremely slow)
 	// at the cost of functions that don't want the newline needing to trim off the last two characters
 	// (which is a very fast operation and thus acceptable in this case)
+	// 2015-06-28 Rena Kunisaki: removed the trailing newline because I don't
+	// know what this was about but it was just causing blank lines in output.
 
 	return s_tempStr;
 }
@@ -5336,7 +5366,7 @@ static int emu_exec_time(lua_State *L)
 static int emu_exec_time(lua_State *L) { return 0; }
 #endif
 
-static const struct luaL_reg emulib [] = {
+static const struct luaL_Reg emulib [] = {
 
 	{"poweron", emu_poweron},
 	{"softreset", emu_softreset},
@@ -5366,7 +5396,7 @@ static const struct luaL_reg emulib [] = {
 	{NULL,NULL}
 };
 
-static const struct luaL_reg romlib [] = {
+static const struct luaL_Reg romlib [] = {
 	{"readbyte", rom_readbyte},
 	{"readbytesigned", rom_readbytesigned},
 	// alternate naming scheme for unsigned
@@ -5377,11 +5407,11 @@ static const struct luaL_reg romlib [] = {
 };
 
 
-static const struct luaL_reg memorylib [] = {
+static const struct luaL_Reg memorylib [] = {
 
 	{"readbyte", memory_readbyte},
 	{"readbyterange", memory_readbyterange},
-	{"readbytesigned", memory_readbytesigned},	
+	{"readbytesigned", memory_readbytesigned},
 	{"readbyteunsigned", memory_readbyte},	// alternate naming scheme for unsigned
 	{"readword", memory_readword},
 	{"readwordsigned", memory_readwordsigned},
@@ -5402,7 +5432,7 @@ static const struct luaL_reg memorylib [] = {
 	{NULL,NULL}
 };
 
-static const struct luaL_reg joypadlib[] = {
+static const struct luaL_Reg joypadlib[] = {
 	{"get", joypad_get},
 	{"getdown", joypad_getdown},
 	{"getup", joypad_getup},
@@ -5417,12 +5447,12 @@ static const struct luaL_reg joypadlib[] = {
 	{NULL,NULL}
 };
 
-static const struct luaL_reg zapperlib[] = {
+static const struct luaL_Reg zapperlib[] = {
 	{"read", zapper_read},
 	{NULL,NULL}
 };
 
-static const struct luaL_reg inputlib[] = {
+static const struct luaL_Reg inputlib[] = {
 	{"get", input_get},
 	{"popup", input_popup},
 	{"openfilepopup", input_openfilepopup},
@@ -5432,7 +5462,7 @@ static const struct luaL_reg inputlib[] = {
 	{NULL,NULL}
 };
 
-static const struct luaL_reg savestatelib[] = {
+static const struct luaL_Reg savestatelib[] = {
 	{"create", savestate_create},
 	{"object", savestate_object},
 	{"save", savestate_save},
@@ -5446,7 +5476,7 @@ static const struct luaL_reg savestatelib[] = {
 	{NULL,NULL}
 };
 
-static const struct luaL_reg movielib[] = {
+static const struct luaL_Reg movielib[] = {
 
 	{"framecount", emu_framecount}, // for those familiar with other emulators that have movie.framecount() instead of emulatorname.framecount()
 	{"mode", movie_mode},
@@ -5478,7 +5508,7 @@ static const struct luaL_reg movielib[] = {
 };
 
 
-static const struct luaL_reg guilib[] = {
+static const struct luaL_Reg guilib[] = {
 
 	{"pixel", gui_pixel},
 	{"getpixel", gui_getpixel},
@@ -5512,13 +5542,13 @@ static const struct luaL_reg guilib[] = {
 	{NULL,NULL}
 };
 
-static const struct luaL_reg soundlib[] = {
+static const struct luaL_Reg soundlib[] = {
 
 	{"get", sound_get},
 	{NULL,NULL}
 };
 
-static const struct luaL_reg debuggerlib[] = {
+static const struct luaL_Reg debuggerlib[] = {
 
 	{"hitbreakpoint", debugger_hitbreakpoint},
 	{"getcyclescount", debugger_getcyclescount},
@@ -5528,7 +5558,7 @@ static const struct luaL_reg debuggerlib[] = {
 	{NULL,NULL}
 };
 
-static const struct luaL_reg taseditorlib[] = {
+static const struct luaL_Reg taseditorlib[] = {
 
 	{"registerauto", taseditor_registerauto},
 	{"registermanual", taseditor_registermanual},
@@ -5594,7 +5624,7 @@ void FCEU_LuaFrameBoundary()
 	frameAdvanceWaiting = FALSE;
 
 	numTries = 1000;
-	int result = lua_resume(thread, 0);
+	int result = lua_resume(thread, NULL, 0);
 
 	if (result == LUA_YIELD) {
 		// Okay, we're fine with that.
@@ -5665,7 +5695,7 @@ int FCEU_LoadLuaCode(const char *filename, const char *arg) {
 
 	if (!L) {
 
-		L = lua_open();
+		L = luaL_newstate();
 		luaL_openlibs(L);
 		#if defined( WIN32) && !defined(NEED_MINGW_HACKS)
 		iuplua_open(L);
@@ -5709,7 +5739,7 @@ int FCEU_LoadLuaCode(const char *filename, const char *arg) {
 		lua_register(L, "OR", bit_bor);
 		lua_register(L, "XOR", bit_bxor);
 		lua_register(L, "SHIFT", bit_bshift_emulua);
-		lua_register(L, "BIT", bitbit);		
+		lua_register(L, "BIT", bitbit);
 
 		if (arg)
 		{
@@ -5804,7 +5834,7 @@ void FCEU_ReloadLuaCode()
 	if (!luaScriptName)
 	{
 #ifdef WIN32
-		// no script currently running, then try loading the most recent 
+		// no script currently running, then try loading the most recent
 		extern char *recent_lua[];
 		char*& fname = recent_lua[0];
 		extern void UpdateLuaConsole(const char* fname);

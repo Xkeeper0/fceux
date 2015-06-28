@@ -1,7 +1,7 @@
 #
 # SConstruct - build script for the SDL port of fceux
 #
-# You can adjust the BoolVariables below to include/exclude features 
+# You can adjust the BoolVariables below to include/exclude features
 # at compile-time.  You may also use arguments to specify the parameters.
 #   ie: scons RELEASE=1 GTK3=1
 #
@@ -10,10 +10,10 @@
 
 import os
 import sys
-import platform 
+import platform
 
 opts = Variables(None, ARGUMENTS)
-opts.AddVariables( 
+opts.AddVariables(
   BoolVariable('DEBUG',     'Build with debugging symbols', 1),
   BoolVariable('RELEASE',   'Set to 1 to build for release', 0),
   BoolVariable('FRAMESKIP', 'Enable frameskipping', 1),
@@ -129,19 +129,19 @@ else:
   ### Lua platform defines
   ### Applies to all files even though only lua needs it, but should be ok
   if env['LUA']:
-    env.Append(CPPDEFINES=["_S9XLUA_H"])
+    env.Append(CPPDEFINES=["_S9XLUA_H", "-DLUA_COMPAT_5_2", "-DLUA_COMPAT_5_1"])
     if env['PLATFORM'] == 'darwin':
       # Define LUA_USE_MACOSX otherwise we can't bind external libs from lua
-      env.Append(CCFLAGS = ["-DLUA_USE_MACOSX"])    
+      env.Append(CCFLAGS = ["-DLUA_USE_MACOSX"])
     if env['PLATFORM'] == 'posix':
       # If we're POSIX, we use LUA_USE_LINUX since that combines usual lua posix defines with dlfcn calls for dynamic library loading.
       # Should work on any *nix
       env.Append(CCFLAGS = ["-DLUA_USE_LINUX"])
     lua_available = False
     if env['SYSTEM_LUA']:
-      if conf.CheckLib('lua5.1'):
-        env.Append(LINKFLAGS = ["-ldl", "-llua5.1"])
-        env.Append(CCFLAGS = ["-I/usr/include/lua5.1"])
+      if conf.CheckLib('lua5.3'):
+        env.Append(LINKFLAGS = ["-ldl", "-llua5.3"])
+        env.Append(CCFLAGS = ["-I/usr/include/lua5.3"])
         lua_available = True
       elif conf.CheckLib('lua'):
         env.Append(LINKFLAGS = ["-ldl", "-llua"])
@@ -157,18 +157,18 @@ else:
   # "--as-needed" no longer available on OSX (probably BSD as well? TODO: test)
   if env['PLATFORM'] != 'darwin':
     env.Append(LINKFLAGS=['-Wl,--as-needed'])
-  
+
   ### Search for gd if we're not in Windows
   if (env['PLATFORM'] != 'win32' and env['PLATFORM'] != 'cygwin') and (env['CREATE_AVI'] or env['LOGO']):
     gd = conf.CheckLib('gd', autoadd=1)
     if gd == 0:
       env['LOGO'] = 0
       print 'Did not find libgd, you won\'t be able to create a logo screen for your avis.'
-   
+
   if env['OPENGL'] and conf.CheckLibWithHeader('GL', 'GL/gl.h', 'c', autoadd=1):
     conf.env.Append(CCFLAGS = "-DOPENGL")
   conf.env.Append(CPPDEFINES = ['PSS_STYLE=1'])
-  
+
   env = conf.Finish()
 
 if sys.byteorder == 'little' or env['PLATFORM'] == 'win32':
