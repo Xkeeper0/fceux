@@ -9,6 +9,8 @@ local function test(val, expect, ...)
 end
 
 test(tostring(1), "1")
-test(1 << 1, 2)
+test(tostring(20), "20")
+test(('%20s'):format('abc'), '                 abc')
+--test(1 << 1, 2)
 
 print("Test OK")

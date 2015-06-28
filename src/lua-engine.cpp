@@ -1386,7 +1386,7 @@ static void toCStringConverter(lua_State* L, int i, char*& ptr, int& remaining)
 			else {
 				APPENDPRINT "%.12Lg",lua_tonumber(L,i) END
 			}
-		break;
+			break;
 		case LUA_TFUNCTION:
 			/*if((L->base + i-1)->value.gc->cl.c.isC)
 			{
@@ -5728,8 +5728,8 @@ int FCEU_LoadLuaCode(const char *filename, const char *arg) {
 		lua_settop(L, 0);		// clean the stack, because each call to luaL_register leaves a table on top
 
 		// register a few utility functions outside of libraries (in the global namespace)
-		lua_register(L, "print", print);
-		lua_register(L, "tostring", tostring);
+		//lua_register(L, "print", print);
+		//lua_register(L, "tostring", tostring);
 		lua_register(L, "tobitstring", tobitstring);
 		lua_register(L, "addressof", addressof);
 		lua_register(L, "copytable", copytable);
