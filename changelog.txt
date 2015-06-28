@@ -1,3 +1,4 @@
+28-Jun-2015 - Rena - Update to Lua 5.3, fix issues with tostring() and print()
 
 ---r3017 - FCEUX 2.2.1 Released---
 ---September 23 2013---
@@ -393,7 +394,7 @@ plombo - added new gamepad configuration dialog
 25-jan-2010 - prg318 - gtk - filechooser now remembers last file opened
 25-jan-2010 - prg318 - gtk - fixed xscale/yscale spinbuttons not changing config
 24-jan-2010 - prg318 - gtk - game window integrated into sdl window (thanks bryan!)
-11-nov-2010 - mart0258 - TasEdit - Invalidate greenzone when re-recording earlier portions of a movie. 
+11-nov-2010 - mart0258 - TasEdit - Invalidate greenzone when re-recording earlier portions of a movie.
 09-oct-2010  - zeromus - fix bug in new ppu that made some intensify bits not get applied to output (fixes flashing siren screen in werefolf
 09-oct-2010 - gocha - win32 - Ram Watch - fix the multiple selection of watches
 09-oct-2010 - gocha - Win32 - Ram Search - multiple selection of addresses, fix restoration of the selection range
@@ -482,7 +483,7 @@ plombo - added new gamepad configuration dialog
 07-april-2010 - adelikat - Win32 - Lua console - filename updates when lua scripts are dragged to emulator or recent filenames invoked
 07-april-2010 - adelikat - Lua no longer unpauses the emulator when a script is loaded
 30-march-2010 - ugetab - Win32 - Closing minimized windows no longer moves them the next time they get opened
-28-march-2010 - adelikat - lua - fixed zapper.read() to read movie data if a movie is playing.  Also changed the struct values to x,y,fire.  This breaks lua scripts that used it previous, sorry.  
+28-march-2010 - adelikat - lua - fixed zapper.read() to read movie data if a movie is playing.  Also changed the struct values to x,y,fire.  This breaks lua scripts that used it previous, sorry.
 04-march-2010 - prockguy - added menu buttons for loading nsf files
 03-march-2010 - adelikat - Win32 - If .fm2 drag & dropped with no ROM load, the open ROM dialog will appear
 03-march-2010 - prockguy - fceux - now prints the name of the mapper on rom load
@@ -500,7 +501,7 @@ plombo - added new gamepad configuration dialog
 23-feb-2010 - prockguy - GTK - added GUI for color/tint/hue
 23-feb-2010 - prockguy - GTK - implemented sound mixer dialog (for square1, 2, triangle, etc)
 22-feb-2010 - prockguy - SDL - ported to SDL 1.3; compatibility maintained with 1.2
-18-feb-2010 - prockguy - GTK - a lot of options added to GTK gui; relatively stable; added GUI for gamepad config and sound config.  
+18-feb-2010 - prockguy - GTK - a lot of options added to GTK gui; relatively stable; added GUI for gamepad config and sound config.
 02-feb-2010 - ugetab - Win32 - Added window positions bounds checks. Accounts for -32000 positions & less out-of-range too
 08-jan-2010 - rheiny - Win32 - Trace Logger - Trace logger now logs the values of the stack pointer register
 31-dec-2009 - prg318 - added gtk gui
@@ -518,7 +519,7 @@ plombo - added new gamepad configuration dialog
 08-nov-2009 - gocha - change gui.line, gui.box, joypad.get to function like GENS rerecording
 08-nov-2009 - gocha - New lua functions: gui.parsecolor, joypad.getup, joypad.getdown, emu.emulating.
 08-nov-2009 - CaH4e3 - Fixes for mappers 253 & 226 - fixes games such as Fire Emblem (J) and Fire Emblem Gaiden (J)
-08-nov-2009 - CaH4e3 - Fix crashing on game loading for any battery backed roms with mappers from MapInitTab (fixes Esper Dream 2 - Aratanaru Tatakai (J) 
+08-nov-2009 - CaH4e3 - Fix crashing on game loading for any battery backed roms with mappers from MapInitTab (fixes Esper Dream 2 - Aratanaru Tatakai (J)
 04-nov-2009 - adelikat - win32 - debugger - added an auto-load feature
 
 ---r1527 - FCEUX 2.1.2 Released---
@@ -526,12 +527,12 @@ plombo - added new gamepad configuration dialog
 
 02-nov-2009 - qeed - fixed mapper 226, 76-in-1 seems to work now, also super 42 also seems to work with this fix, but people with save states with this game should make a new one. Since the the save state format for this game was changed a little.
 31-oct-2009 - adelikat - win32 - Memwatch - Save Changes prompt - Selecting yes will do quicksave first, save as 2nd (instead of always defaulting to save as)
-19-oct-2009 - qeed   - Mapper 253 mostly implemented, known game [ES-1064] Qi Long Zhu (C) is mostly playable (some minor graphic glitches). Thanks to VirtualNESEX for reverse engineering this, gil for giving me the mapper src for implementation reference, and Dead_Body for figuring out this game had to use chr-ram 
+19-oct-2009 - qeed   - Mapper 253 mostly implemented, known game [ES-1064] Qi Long Zhu (C) is mostly playable (some minor graphic glitches). Thanks to VirtualNESEX for reverse engineering this, gil for giving me the mapper src for implementation reference, and Dead_Body for figuring out this game had to use chr-ram
 10-oct-2009 - qeed   - fixed dragon's lair the mapper 4 europe version in new PPU
 10-oct-2009 - zeromus - fixed Tecmo Super Bowl in new PPU
 08-oct-2009 - ugetab - win32 - fixed a debugger crash error, Unif/FDS filename issue, and enabled debugger bank display
 01-oct-2009 - gocha - win32 - movie play dialog displays movie time based on ~60.1 (~50.1 PAL) instead of 60 & 50
-26-sept-2009 - qeed - fixed action 52 game that was broken in fceux >2.0.3 
+26-sept-2009 - qeed - fixed action 52 game that was broken in fceux >2.0.3
 16-sept-2009 - ugetab - win32 - Restored DPCM Logging when Code/Data Logger is active
 sept-2009 - FatRatKnight - Finally got in that "invert" value for joypad.set. This value simply inverts the player input. Actually, any string will invert it, since we have not used strings for anything else in joypad.set.
 15-sept-2009 - FatRatKnight - Reworked how input is taken from lua, and generally everything related to joypad.set and what it affects. Now setting stuff to false will: Prevent user control for exactly one frame, and allow more than one false button as a time. Yeah, bug fixes. Hopefully runs a little faster now.
@@ -549,10 +550,10 @@ should be playable again.
 
 01-july-2009 - adelikat - win32 - texthooker - drag & drop for table files
 01-july-2009 - adelikat - win32 - drag & drop for cheat (.cht) files
-25-jun-2009 - qeed - sound/ppu - fixed the noise value, it seems that the noise logic was shifting the values to the left by 1 when reloading, but this doesnt work for PAL since one of the PAL reload value is odd, so fix the logic and used the old tables. Revert a stupid CPU ignore logic in PPU. Sorry about that. 
+25-jun-2009 - qeed - sound/ppu - fixed the noise value, it seems that the noise logic was shifting the values to the left by 1 when reloading, but this doesnt work for PAL since one of the PAL reload value is odd, so fix the logic and used the old tables. Revert a stupid CPU ignore logic in PPU. Sorry about that.
 25-jun-2009 - adelikat - Win32 - CD Logger - Drag and Drop for .cdl files
-24-jun-2009 - qeed - sound/ppu - reverted to old noise table value since this seems to get correct sound for double 
-dragon 2. Also added experimental $2004 reading support to play micro machines with (little) shakes, and fixed some 
+24-jun-2009 - qeed - sound/ppu - reverted to old noise table value since this seems to get correct sound for double
+dragon 2. Also added experimental $2004 reading support to play micro machines with (little) shakes, and fixed some
 timing in the new PPU.
 24-jun-2009 - adelikat - win32 - memory watch - option to bind to main window, if checked it gives GENS dialog style control, where there is no extra task bar item, and it minimizes when FCEUX is minimized
 24-jun-2009 - adelikat - win32 - palette commandline options
@@ -565,10 +566,10 @@ timing in the new PPU.
 					 Warrior 4, added palette reading cases for the new PPU.
 21-jun-2009 - adelikat - win32 - memwatch - save menu item is grayed if file hasn't changed
 20-jun-2009 - adelikat - win32 - memwatch - fixed a regression I made in 2.0.1 that broke the Save As menu item
-17-jun-2009 - qeed - Sound core fix, updated with the correct values for the noise and DMC table, 
-                     and also fixed the IRQ inhibit behavior for register $4017. Also fixed the CPU 
-                     unofficial opcode ATX, ORing with correct constant $FF instead of $EE, as tested 
-                     by blargg's. These fixes passes the IRQ flags test from blargg, and also one more 
+17-jun-2009 - qeed - Sound core fix, updated with the correct values for the noise and DMC table,
+                     and also fixed the IRQ inhibit behavior for register $4017. Also fixed the CPU
+                     unofficial opcode ATX, ORing with correct constant $FF instead of $EE, as tested
+                     by blargg's. These fixes passes the IRQ flags test from blargg, and also one more
                      opcode test from blargg's cpu.nes test.
 16-jun-2009 - adelikat - sound core fix - square 1 & square 2 volume controls no longer backwards
 11-jun-2009 - zeromus - sound core fix, length counters for APU now correct variables
