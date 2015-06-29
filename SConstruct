@@ -153,6 +153,7 @@ else:
     else:
       env.Append(LINKFLAGS = ["-ldl"])
       env.Append(CCFLAGS = ["-Isrc/lua/src"])
+      env.Append(LIBS = ["dl"])
       lua_available = True
   # "--as-needed" no longer available on OSX (probably BSD as well? TODO: test)
   if env['PLATFORM'] != 'darwin':
