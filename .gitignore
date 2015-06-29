@@ -3,6 +3,7 @@ bin/**
 .sconsign.dblite
 fceux-net-server
 src/fceux
+*.log
 
 # from https://github.com/github/gitignore
 # Object files
